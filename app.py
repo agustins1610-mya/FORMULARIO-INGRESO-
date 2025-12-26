@@ -7,7 +7,7 @@ import os
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="FORMULARIO DE INGRESO",
+    page_title="Ingreso de Demandas",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -204,7 +204,7 @@ with c3:
     monto = st.text_input("Monto ($)", value="INDETERMINADO")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- BLOQUE 2: PARTES (MEJORADO VISUALMENTE) ---
+# --- BLOQUE 2: PARTES (CORREGIDO) ---
 st.markdown('<div class="data-block"><div class="section-title">👥 2. PARTES INTERVINIENTES</div>', unsafe_allow_html=True)
 
 col_actor, col_sep, col_demandado = st.columns([1, 0.05, 1])
@@ -214,7 +214,6 @@ with col_actor:
     st.markdown("#### 👤 Parte Actora")
     st.caption("Quien reclama / inicia la demanda")
     
-    # Datos iniciales con ejemplos vacíos para guiar
     df_actores = st.data_editor(
         pd.DataFrame([{"Apellido y Nombre": "", "DNI": "", "Domicilio": ""}]),
         column_config={
@@ -222,20 +221,18 @@ with col_actor:
                 "👤 Apellido y Nombre",
                 width="large",
                 required=True,
-                help="Ingrese Apellido y Nombre completos",
-                placeholder="Ej: PEREZ JUAN..."
+                help="Ingrese Apellido y Nombre completos"
             ),
             "DNI": st.column_config.TextColumn(
                 "🆔 DNI / CUIT",
                 width="small",
                 required=True,
-                placeholder="Ej: 20..."
+                help="Ingrese números sin puntos ni guiones"
             ),
             "Domicilio": st.column_config.TextColumn(
                 "📍 Domicilio Real",
                 width="large",
-                required=True,
-                placeholder="Calle y Altura..."
+                required=True
             ),
         },
         num_rows="dynamic",
@@ -244,7 +241,7 @@ with col_actor:
         key="editor_actores"
     )
 
-# --- SEPARADOR VISUAL (Truco para dar aire) ---
+# --- SEPARADOR VISUAL ---
 with col_sep:
     st.markdown("") 
 
@@ -260,7 +257,7 @@ with col_demandado:
                 "🏢 Nombre / Razón Social",
                 width="large",
                 required=True,
-                placeholder="Ej: EMPRESA S.A..."
+                help="Nombre de la persona o empresa demandada"
             ),
             "Tipo": st.column_config.SelectboxColumn(
                 "📄 Tipo",
@@ -270,13 +267,11 @@ with col_demandado:
             ),
             "Doc N°": st.column_config.TextColumn(
                 "🔢 N° Doc",
-                width="small",
-                placeholder="Sin guiones"
+                width="small"
             ),
             "Domicilio": st.column_config.TextColumn(
                 "📍 Domicilio",
-                width="large",
-                placeholder="Si se conoce..."
+                width="large"
             ),
         },
         num_rows="dynamic",
@@ -375,4 +370,3 @@ st.markdown("""
     Estudio Molina & Asociados | Orán, Salta
     </div>
     """, unsafe_allow_html=True)
-
