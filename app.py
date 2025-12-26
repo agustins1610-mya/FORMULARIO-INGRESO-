@@ -1,3 +1,18 @@
+¡Entendido! Tienes toda la razón. Al cambiar al "modo tarjetas" para eliminar la tabla, en el código anterior quité accidentalmente la barra lateral con el selector de tema (Claro/Oscuro).
+
+Aquí tienes la **FUSIÓN DEFINITIVA**. Este código combina **todo lo mejor de las dos versiones**:
+
+1. **Modo Tarjetas:** Mantiene los inputs individuales (sin tabla fea de Excel).
+2. **Selector de Tema:** Vuelve la opción en la barra lateral para elegir "Claro" u "Oscuro".
+3. **Estilo Personalizado:**
+* **Modo Claro:** Mantiene tus cajas blancas con borde negro (estilo legal/formulario).
+* **Modo Oscuro:** Adapta las tarjetas y los inputs a colores oscuros para que no encandile.
+
+
+
+Copia y pega este código completo. Es la versión final integrada.
+
+```python
 import streamlit as st
 from docxtpl import DocxTemplate
 from datetime import datetime
@@ -10,117 +25,152 @@ st.set_page_config(
     page_title="Sistema de Demandas",
     page_icon="⚖️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# --- 2. GESTIÓN DE ESTADO (MEMORIA PARA AGREGAR/QUITAR PERSONAS) ---
+# --- 2. GESTIÓN DE MEMORIA (Para agregar/quitar tarjetas) ---
 if 'actores' not in st.session_state:
-    st.session_state.actores = [{"id": 0}] # Empieza con un actor
+    st.session_state.actores = [{"id": 0}]
 if 'demandados' not in st.session_state:
-    st.session_state.demandados = [{"id": 0}] # Empieza con un demandado
+    st.session_state.demandados = [{"id": 0}]
 
 def agregar_actor():
     st.session_state.actores.append({"id": len(st.session_state.actores)})
-
 def quitar_actor():
-    if len(st.session_state.actores) > 1:
-        st.session_state.actores.pop()
+    if len(st.session_state.actores) > 1: st.session_state.actores.pop()
 
 def agregar_demandado():
     st.session_state.demandados.append({"id": len(st.session_state.demandados)})
-
 def quitar_demandado():
-    if len(st.session_state.demandados) > 1:
-        st.session_state.demandados.pop()
+    if len(st.session_state.demandados) > 1: st.session_state.demandados.pop()
 
-# --- 3. ESTILOS CSS (DISEÑO DE TARJETAS BLANCAS CON BORDE) ---
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-    
-    :root {
+# --- 3. BARRA LATERAL (SELECTOR DE TEMA) ---
+with st.sidebar:
+    st.header("⚙️ Configuración")
+    tema = st.radio("Apariencia", ["Claro (Clásico)", "Oscuro (Moderno)"], index=0)
+    st.markdown("---")
+    st.info("ℹ️ 'Claro': Ideal para imprimir o ambientes iluminados.\n\n'Oscuro': Ideal para trabajar de noche.")
+
+# --- 4. LÓGICA DE ESTILOS (CSS) ---
+if tema == "Claro (Clásico)":
+    # TEMA CLARO: Fondo gris suave, Tarjetas Blancas, BORDE NEGRO en inputs
+    css_variables = """
         --bg-app: #F5F7FA;
-        --border-input: #333333; /* Borde oscuro que pediste */
-    }
+        --bg-card: #FFFFFF;
+        --text-main: #1A1A1A;
+        --primary: #1B263B;
+        --accent: #C5A065;
+        --input-bg: #FFFFFF;
+        --input-text: #000000;
+        --input-border: #333333; /* El borde oscuro que te gusta */
+        --card-border: #E2E8F0;
+    """
+else:
+    # TEMA OSCURO: Fondo azul noche, Tarjetas oscuras, textos claros
+    css_variables = """
+        --bg-app: #0F172A;
+        --bg-card: #1E293B;
+        --text-main: #E2E8F0;
+        --primary: #38BDF8;
+        --accent: #C5A065;
+        --input-bg: #334155;
+        --input-text: #FFFFFF;
+        --input-border: #475569;
+        --card-border: #334155;
+    """
 
-    /* Fondo general */
-    [data-testid="stAppViewContainer"] {
+st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    :root {{
+        {css_variables}
+    }}
+
+    /* APLICACIÓN GLOBAL */
+    [data-testid="stAppViewContainer"] {{
         background-color: var(--bg-app);
         font-family: 'Inter', sans-serif;
-    }
-    
-    /* Títulos */
-    h1, h2, h3 { color: #1B263B !important; }
+        color: var(--text-main);
+    }}
+    [data-testid="stHeader"] {{ background-color: rgba(0,0,0,0); }}
+    [data-testid="stSidebar"] {{ background-color: var(--bg-card); border-right: 1px solid var(--card-border); }}
 
-    /* ESTILO DE LOS INPUTS (Cuadros de texto) */
-    /* Esto fuerza que se vean como cajas blancas con borde negro fino */
-    input[type="text"], input[type="number"], .stTextInput input, div[data-baseweb="select"] > div {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 1px solid var(--border-input) !important;
+    /* ESTILO DE INPUTS (Adaptable según tema) */
+    input[type="text"], input[type="number"], .stTextInput input, div[data-baseweb="select"] > div {{
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+        border: 1px solid var(--input-border) !important;
         border-radius: 6px !important;
         min-height: 45px !important;
-    }
+    }}
+    
+    /* Textos dentro de selects */
+    div[data-baseweb="select"] span {{ color: var(--input-text) !important; }}
+    ul[data-baseweb="menu"] {{ background-color: var(--input-bg) !important; border: 1px solid var(--input-border) !important; }}
+    li[data-baseweb="option"] {{ color: var(--input-text) !important; }}
 
-    /* Etiquetas de los inputs */
-    .stTextInput label, .stSelectbox label {
-        color: #1A1A1A !important;
-        font-weight: 600 !important;
-        font-size: 14px !important;
-        margin-bottom: 5px !important;
-    }
+    /* Labels (Etiquetas) */
+    .stTextInput label, .stSelectbox label, h1, h2, h3, h4, p {{
+        color: var(--text-main) !important;
+    }}
 
-    /* CONTENEDORES (TARJETAS) */
-    .data-card {
-        background-color: white;
+    /* TARJETAS (CONTENEDORES) */
+    .data-card {{
+        background-color: var(--bg-card);
         padding: 25px;
-        border-radius: 10px;
-        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         margin-bottom: 20px;
-    }
+    }}
     
-    .card-header {
+    .card-title {{
         font-size: 1.1rem;
         font-weight: 700;
-        color: #1B263B;
-        border-bottom: 2px solid #C5A065;
+        color: var(--primary);
+        border-bottom: 2px solid var(--accent);
         padding-bottom: 8px;
         margin-bottom: 20px;
-        display: block;
-    }
+        display: inline-block;
+    }}
 
-    /* Separador visual entre personas */
-    hr.persona-separator {
+    /* Separador visual en listas */
+    hr.separator {{
         border: 0;
-        border-top: 1px dashed #CBD5E1;
+        border-top: 1px dashed var(--input-border);
+        opacity: 0.3;
         margin: 20px 0;
-    }
+    }}
 
     /* BOTONES */
-    .stButton button {
+    div.stButton > button {{
         border-radius: 6px;
         font-weight: 600;
-    }
+        border: none;
+        transition: 0.2s;
+    }}
     
     /* Footer */
-    .footer {
+    .footer {{
         position: fixed; bottom: 0; left: 0; width: 100%;
-        background: white; border-top: 1px solid #E2E8F0;
-        text-align: center; padding: 10px; font-size: 12px; color: #666;
+        background-color: var(--bg-card);
+        border-top: 1px solid var(--card-border);
+        text-align: center; padding: 10px; font-size: 12px;
+        color: var(--text-main); opacity: 0.7;
         z-index: 999;
-    }
-    #MainMenu, footer, header {visibility: hidden;}
+    }}
+    #MainMenu, footer, header {{visibility: hidden;}}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. CABECERA ---
-st.markdown("<div style='text-align: center; margin-bottom: 20px;'>", unsafe_allow_html=True)
-st.title("⚖️ Sistema de Demandas")
-st.markdown("**VERSIÓN: TARJETAS INDIVIDUALES** (Si ves esto, el código se actualizó)")
+# --- 5. CABECERA ---
+st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
+st.markdown("<h1>⚖️ Sistema de Ingreso de Demandas</h1>", unsafe_allow_html=True)
+st.markdown("<p style='opacity:0.8;'>Formulario Oficial - Poder Judicial de Salta</p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 5. CONSTANTES ---
+# --- 6. CONSTANTES ---
 ABOGADO_DEFECTO = "SALAS AGUSTÍN GABRIEL"
 MATRICULA_DEFECTO = "7093"
 CODIGOS_RAW = {
@@ -136,8 +186,8 @@ CODIGOS_RAW = {
 }
 LISTA_CODIGOS = sorted([f"{v} - {k}" for k, v in CODIGOS_RAW.items()])
 
-# --- 6. BLOQUE 1: EXPEDIENTE ---
-st.markdown('<div class="data-card"><span class="card-header">📂 1. Datos del Expediente</span>', unsafe_allow_html=True)
+# --- 7. DATOS DEL EXPEDIENTE ---
+st.markdown('<div class="data-card"><div class="card-title">📂 1. DATOS DEL EXPEDIENTE</div>', unsafe_allow_html=True)
 c1, c2, c3 = st.columns([1, 2, 0.8])
 with c1:
     fuero = st.selectbox("Fuero", ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"])
@@ -147,22 +197,20 @@ with c3:
     monto = st.text_input("Monto ($)", value="INDETERMINADO")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 7. BLOQUE 2: PARTES (AQUÍ ESTÁ EL CAMBIO) ---
-st.markdown('<div class="data-card"><span class="card-header">👥 2. Partes Intervinientes</span>', unsafe_allow_html=True)
+# --- 8. PARTES (MODO TARJETAS + SOPORTE TEMA) ---
+st.markdown('<div class="data-card"><div class="card-title">👥 2. PARTES INTERVINIENTES</div>', unsafe_allow_html=True)
 
 col_izq, col_espacio, col_der = st.columns([1, 0.1, 1])
 
-# --- LADO IZQUIERDO: ACTORES ---
+# --- ACTORES ---
 with col_izq:
     st.markdown("#### 👤 Parte Actora")
-    actores_data = [] # Lista para guardar lo que escribas
+    actores_data = []
     
-    # Bucle para generar tarjetas por cada actor
     for i, _ in enumerate(st.session_state.actores):
-        if i > 0: st.markdown('<hr class="persona-separator">', unsafe_allow_html=True)
+        if i > 0: st.markdown('<hr class="separator">', unsafe_allow_html=True)
         
-        st.markdown(f"**Actor #{i+1}**")
-        # Inputs individuales (NO SON TABLAS)
+        st.caption(f"Solicitante #{i+1}")
         nombre = st.text_input(f"Apellido y Nombre", key=f"a_nom_{i}")
         
         c_dni, c_dom = st.columns([0.4, 0.6])
@@ -171,39 +219,37 @@ with col_izq:
         
         actores_data.append({"nombre": nombre, "dni": dni, "domicilio": dom})
 
-    # Botones pequeños
-    c_btn1, c_btn2 = st.columns(2)
-    if c_btn1.button("➕ Otro Actor", key="add_act"): agregar_actor()
-    if c_btn2.button("➖ Quitar", key="del_act"): quitar_actor()
+    c_b1, c_b2 = st.columns(2)
+    if c_b1.button("➕ Actor"): agregar_actor()
+    if c_b2.button("➖ Quitar"): quitar_actor()
 
-# --- LADO DERECHO: DEMANDADOS ---
+# --- DEMANDADOS ---
 with col_der:
     st.markdown("#### 🛑 Parte Demandada")
     demandados_data = []
     
     for i, _ in enumerate(st.session_state.demandados):
-        if i > 0: st.markdown('<hr class="persona-separator">', unsafe_allow_html=True)
+        if i > 0: st.markdown('<hr class="separator">', unsafe_allow_html=True)
         
-        st.markdown(f"**Demandado #{i+1}**")
-        
+        st.caption(f"Demandado #{i+1}")
         nombre = st.text_input(f"Nombre / Razón Social", key=f"d_nom_{i}")
         
         c_tipo, c_doc = st.columns([0.3, 0.7])
         tipo = c_tipo.selectbox("Tipo", ["CUIT", "DNI"], key=f"d_tipo_{i}", label_visibility="collapsed")
-        nro = c_doc.text_input("N° Documento", key=f"d_nro_{i}")
+        nro = c_doc.text_input("N° Doc", key=f"d_nro_{i}")
         
         dom = st.text_input("Domicilio", key=f"d_dom_{i}")
         
         demandados_data.append({"nombre": nombre, "tipo": tipo, "nro": nro, "domicilio": dom})
 
-    c_btn3, c_btn4 = st.columns(2)
-    if c_btn3.button("➕ Otro Demandado", key="add_dem"): agregar_demandado()
-    if c_btn4.button("➖ Quitar", key="del_dem"): quitar_demandado()
+    c_b3, c_b4 = st.columns(2)
+    if c_b3.button("➕ Demandado"): agregar_demandado()
+    if c_b4.button("➖ Quitar"): quitar_demandado()
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 8. BLOQUE 3: PROFESIONAL ---
-st.markdown('<div class="data-card"><span class="card-header">🎓 3. Datos del Profesional</span>', unsafe_allow_html=True)
+# --- 9. PROFESIONAL ---
+st.markdown('<div class="data-card"><div class="card-title">🎓 3. DATOS DEL PROFESIONAL</div>', unsafe_allow_html=True)
 cp1, cp2 = st.columns(2)
 with cp1:
     nombre_abog = st.text_input("Abogado Firmante", value=ABOGADO_DEFECTO)
@@ -211,13 +257,13 @@ with cp2:
     mat_abog = st.text_input("Matrícula Profesional", value=MATRICULA_DEFECTO)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 9. GENERAR ---
+# --- 10. GENERAR ---
 st.markdown("###")
-c_vacio, c_boton, c_vacio2 = st.columns([1, 2, 1])
+c_nil, c_main, c_nil2 = st.columns([1, 2, 1])
 
-with c_boton:
-    if st.button("✨ GENERAR DOCUMENTO WORD", type="primary", use_container_width=True):
-        # Filtramos los vacíos
+with c_main:
+    if st.button("✨ GENERAR DOCUMENTO WORD", use_container_width=True, type="primary"):
+        # Filtrar datos vacíos
         actores_validos = [x for x in actores_data if x['nombre'].strip()]
         demandados_validos = [x for x in demandados_data if x['nombre'].strip()]
         
@@ -269,4 +315,6 @@ with c_boton:
                 st.error("Falta la plantilla .docx")
 
 # --- FOOTER ---
-st.markdown('<div class="footer">Estudio Molina & Asociados</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Estudio Molina & Asociados | Orán, Salta</div>', unsafe_allow_html=True)
+
+```
