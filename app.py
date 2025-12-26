@@ -7,7 +7,7 @@ import os
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Ingreso de Demandas",
+    page_title="FORMULARIO DE INGRESO",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -204,21 +204,39 @@ with c3:
     monto = st.text_input("Monto ($)", value="INDETERMINADO")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- BLOQUE 2: PARTES ---
+# --- BLOQUE 2: PARTES (MEJORADO VISUALMENTE) ---
 st.markdown('<div class="data-block"><div class="section-title">👥 2. PARTES INTERVINIENTES</div>', unsafe_allow_html=True)
 
-col_actor, col_sep, col_demandado = st.columns([1, 0.1, 1])
+col_actor, col_sep, col_demandado = st.columns([1, 0.05, 1])
 
+# --- PARTE ACTORA ---
 with col_actor:
-    st.markdown("### 👤 Parte Actora")
-    st.caption("Añada filas para múltiples actores")
-    # Configuración visual limpia para la tabla de actores
+    st.markdown("#### 👤 Parte Actora")
+    st.caption("Quien reclama / inicia la demanda")
+    
+    # Datos iniciales con ejemplos vacíos para guiar
     df_actores = st.data_editor(
         pd.DataFrame([{"Apellido y Nombre": "", "DNI": "", "Domicilio": ""}]),
         column_config={
-            "Apellido y Nombre": st.column_config.TextColumn("Nombre Completo", width="medium", required=True),
-            "DNI": st.column_config.TextColumn("DNI", width="small"),
-            "Domicilio": st.column_config.TextColumn("Domicilio Real", width="medium"),
+            "Apellido y Nombre": st.column_config.TextColumn(
+                "👤 Apellido y Nombre",
+                width="large",
+                required=True,
+                help="Ingrese Apellido y Nombre completos",
+                placeholder="Ej: PEREZ JUAN..."
+            ),
+            "DNI": st.column_config.TextColumn(
+                "🆔 DNI / CUIT",
+                width="small",
+                required=True,
+                placeholder="Ej: 20..."
+            ),
+            "Domicilio": st.column_config.TextColumn(
+                "📍 Domicilio Real",
+                width="large",
+                required=True,
+                placeholder="Calle y Altura..."
+            ),
         },
         num_rows="dynamic",
         use_container_width=True,
@@ -226,23 +244,47 @@ with col_actor:
         key="editor_actores"
     )
 
+# --- SEPARADOR VISUAL (Truco para dar aire) ---
+with col_sep:
+    st.markdown("") 
+
+# --- PARTE DEMANDADA ---
 with col_demandado:
-    st.markdown("### 🛑 Parte Demandada")
-    st.caption("Añada filas para múltiples demandados")
-    # Configuración visual limpia para la tabla de demandados
+    st.markdown("#### 🛑 Parte Demandada")
+    st.caption("Contra quien se dirige la acción")
+    
     df_demandados = st.data_editor(
         pd.DataFrame([{"Apellido/Razón": "", "Tipo": "CUIT", "Doc N°": "", "Domicilio": ""}]),
         column_config={
-            "Apellido/Razón": st.column_config.TextColumn("Nombre / Razón Social", width="medium", required=True),
-            "Tipo": st.column_config.SelectboxColumn("Tipo", options=["CUIT", "DNI"], width="small"),
-            "Doc N°": st.column_config.TextColumn("N° Documento", width="small"),
-            "Domicilio": st.column_config.TextColumn("Domicilio Real", width="medium"),
+            "Apellido/Razón": st.column_config.TextColumn(
+                "🏢 Nombre / Razón Social",
+                width="large",
+                required=True,
+                placeholder="Ej: EMPRESA S.A..."
+            ),
+            "Tipo": st.column_config.SelectboxColumn(
+                "📄 Tipo",
+                options=["CUIT", "DNI"],
+                width="small",
+                required=True
+            ),
+            "Doc N°": st.column_config.TextColumn(
+                "🔢 N° Doc",
+                width="small",
+                placeholder="Sin guiones"
+            ),
+            "Domicilio": st.column_config.TextColumn(
+                "📍 Domicilio",
+                width="large",
+                placeholder="Si se conoce..."
+            ),
         },
         num_rows="dynamic",
         use_container_width=True,
         hide_index=True,
         key="editor_demandados"
     )
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 # --- BLOQUE 3: PROFESIONAL ---
@@ -333,3 +375,4 @@ st.markdown("""
     Estudio Molina & Asociados | Orán, Salta
     </div>
     """, unsafe_allow_html=True)
+
