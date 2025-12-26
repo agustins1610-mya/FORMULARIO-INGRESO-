@@ -10,169 +10,141 @@ st.set_page_config(
     page_title="Ingreso de Demandas",
     page_icon="⚖️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# --- 2. BARRA LATERAL (SELECTOR DE TEMA) ---
-with st.sidebar:
-    st.header("⚙️ Configuración")
-    tema = st.radio("Apariencia", ["Claro (Clásico)", "Oscuro (Moderno)"], index=0)
-    st.markdown("---")
-    st.info("ℹ️ Seleccione 'Claro' para imprimir o ver con alto contraste.")
+# --- 2. GESTIÓN DE ESTADO (Para agregar/quitar partes) ---
+if 'actores' not in st.session_state:
+    st.session_state.actores = [{"id": 0}] # Inicia con uno
+if 'demandados' not in st.session_state:
+    st.session_state.demandados = [{"id": 0}] # Inicia con uno
 
-# --- 3. ESTILOS CSS (DISEÑO DE FORMULARIO) ---
-if tema == "Claro (Clásico)":
-    # MODO CLARO (Estilo Legal Limpio)
-    css_variables = """
+def agregar_actor():
+    st.session_state.actores.append({"id": len(st.session_state.actores)})
+
+def quitar_actor():
+    if len(st.session_state.actores) > 1:
+        st.session_state.actores.pop()
+
+def agregar_demandado():
+    st.session_state.demandados.append({"id": len(st.session_state.demandados)})
+
+def quitar_demandado():
+    if len(st.session_state.demandados) > 1:
+        st.session_state.demandados.pop()
+
+# --- 3. ESTILOS CSS (DISEÑO UNIFICADO) ---
+# Forzamos un diseño limpio tipo "Papel Legal" para todo
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    
+    :root {
         --bg-app: #F5F7FA;
         --bg-card: #FFFFFF;
-        --text-main: #1A1A1A;
-        --text-sub: #4A4A4A;
+        --text-color: #1A1A1A;
         --primary: #1B263B;
         --accent: #C5A065;
-        --input-bg: #FFFFFF;
-        --input-text: #000000;
-        --input-border: #333333;
-    """
-else:
-    # MODO OSCURO
-    css_variables = """
-        --bg-app: #0F172A;
-        --bg-card: #1E293B;
-        --text-main: #E2E8F0;
-        --text-sub: #94A3B8;
-        --primary: #38BDF8;
-        --accent: #C5A065;
-        --input-bg: #334155;
-        --input-text: #FFFFFF;
-        --input-border: #475569;
-    """
+        --border-input: #333333;
+    }
 
-st.markdown(f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    
-    :root {{
-        {css_variables}
-    }}
-
-    /* APLICACIÓN GLOBAL */
-    [data-testid="stAppViewContainer"] {{
+    /* Fondo Global */
+    [data-testid="stAppViewContainer"] {
         background-color: var(--bg-app);
         font-family: 'Inter', sans-serif;
-        color: var(--text-main);
-    }}
-    
-    [data-testid="stHeader"] {{
-        background-color: rgba(0,0,0,0);
-    }}
+        color: var(--text-color);
+    }
+    [data-testid="stHeader"] { background-color: rgba(0,0,0,0); }
 
-    /* --- ESTILO DE INPUTS (TIPO FORMULARIO) --- */
-    input[type="text"], input[type="number"], .stTextInput input {{
-        background-color: var(--input-bg) !important;
-        color: var(--input-text) !important;
-        border: 1px solid var(--input-border) !important;
+    /* ESTILO DE TODOS LOS INPUTS (Cajas blancas con borde negro) */
+    input[type="text"], input[type="number"], .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 1px solid var(--border-input) !important;
         border-radius: 6px !important;
-        padding: 10px 12px !important;
-        font-size: 1rem !important;
-        box-shadow: none !important;
-    }}
+        height: 45px;
+    }
 
-    /* Efecto Focus (Cuando escribes) */
-    input[type="text"]:focus, .stTextInput input:focus {{
-        border: 2px solid var(--primary) !important;
-        outline: none !important;
-    }}
-    
-    /* Selectores y Menús */
-    div[data-baseweb="select"] > div {{
-        background-color: var(--input-bg) !important;
-        color: var(--input-text) !important;
-        border: 1px solid var(--input-border) !important;
-        border-radius: 6px !important;
-    }}
-    
-    div[data-baseweb="select"] span {{
-        color: var(--input-text) !important;
-    }}
-    
-    ul[data-baseweb="menu"] {{
-        background-color: var(--input-bg) !important;
-        border: 1px solid var(--input-border) !important;
-    }}
-    li[data-baseweb="option"] {{
-        color: var(--input-text) !important;
-    }}
+    /* Títulos de los inputs (Labels) */
+    .stTextInput label, .stSelectbox label {
+        color: #1A1A1A !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+    }
 
-    /* Textos y Títulos */
-    .stTextInput label, .stSelectbox label, p, h1, h2, h3, h4 {{
-        color: var(--text-main) !important;
-    }}
-
-    /* TARJETAS (CONTENEDORES) */
-    .data-block {{
-        background-color: var(--bg-card);
-        padding: 25px;
-        border-radius: 10px;
+    /* TARJETAS (Bloques Blancos) */
+    .data-block {
+        background-color: #FFFFFF;
+        padding: 30px;
+        border-radius: 12px;
         border: 1px solid #E2E8F0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        margin-bottom: 20px;
-    }}
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
     
-    .section-title {{
-        font-size: 1.1rem;
+    .section-header {
+        color: var(--primary);
+        font-size: 1.2rem;
         font-weight: 700;
-        color: var(--primary) !important;
-        border-bottom: 2px solid var(--accent);
-        padding-bottom: 8px;
-        margin-bottom: 15px;
+        border-bottom: 3px solid var(--accent);
         display: inline-block;
-    }}
+        margin-bottom: 20px;
+        padding-bottom: 5px;
+    }
 
-    /* BOTÓN PRINCIPAL */
-    div.stButton > button {{
-        background: linear-gradient(135deg, #C5A065 0%, #B8860B 100%);
-        color: white !important;
+    /* Separador visual dentro de las tarjetas */
+    .item-separator {
+        border-top: 1px dashed #CBD5E1;
+        margin: 15px 0;
+    }
+
+    /* BOTONES */
+    div.stButton > button {
+        border-radius: 6px;
+        font-weight: 600;
         border: none;
-        padding: 14px 24px;
-        font-weight: bold;
-        transition: transform 0.2s;
-        border-radius: 8px;
-        font-size: 1.1rem;
+        transition: 0.2s;
+    }
+    
+    /* Botón Principal (Generar) */
+    .primary-btn button {
+        background: linear-gradient(135deg, #1B263B 0%, #2C3E50 100%) !important;
+        color: white !important;
+        padding: 15px 30px !important;
+        font-size: 1.1rem !important;
         width: 100%;
-    }}
-    div.stButton > button:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }}
+        box-shadow: 0 4px 10px rgba(27, 38, 59, 0.3);
+    }
+    
+    /* Botones de Agregar/Quitar (Pequeños) */
+    .small-btn button {
+        background-color: #E2E8F0 !important;
+        color: #1B263B !important;
+        font-size: 0.8rem !important;
+        padding: 5px 10px !important;
+        border: 1px solid #CBD5E1 !important;
+    }
 
-    /* FOOTER */
-    .footer {{
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: var(--bg-card);
-        border-top: 1px solid #E2E8F0;
-        color: var(--text-sub);
-        text-align: center;
-        padding: 10px;
-        font-size: 12px;
+    /* Footer */
+    .footer {
+        position: fixed; bottom: 0; left: 0; width: 100%;
+        background: #FFFFFF; border-top: 1px solid #E2E8F0;
+        text-align: center; padding: 10px; font-size: 12px; color: #64748B;
         z-index: 999;
-    }}
-    #MainMenu, footer, header {{visibility: hidden;}}
+    }
+    #MainMenu, footer, header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
 # --- 4. CABECERA ---
 st.markdown("""
-    <div style="text-align: center; margin-bottom: 40px;">
-        <h1 style="font-size: 2.5rem; margin-bottom: 5px;">⚖️ Sistema de Ingreso de Demandas</h1>
-        <p style="opacity: 0.8; font-size: 1.1rem;">Formulario Oficial - Poder Judicial de Salta</p>
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color:#1B263B; margin-bottom: 5px;">⚖️ Ingreso de Demandas</h1>
+        <p style="color:#64748B;">Estudio Molina & Asociados · Formulario Oficial</p>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 5. VARIABLES Y CONSTANTES ---
+# --- 5. CONSTANTES ---
 ABOGADO_DEFECTO = "SALAS AGUSTÍN GABRIEL"
 MATRICULA_DEFECTO = "7093"
 CODIGOS_RAW = {
@@ -188,101 +160,117 @@ CODIGOS_RAW = {
 }
 LISTA_CODIGOS = sorted([f"{v} - {k}" for k, v in CODIGOS_RAW.items()])
 
-# --- 6. BLOQUE: DATOS DEL EXPEDIENTE ---
-st.markdown('<div class="data-block"><div class="section-title">📂 1. DATOS DEL EXPEDIENTE</div>', unsafe_allow_html=True)
+# --- 6. DATOS DEL EXPEDIENTE ---
+st.markdown('<div class="data-block"><div class="section-header">📂 1. Datos del Expediente</div>', unsafe_allow_html=True)
 c1, c2, c3 = st.columns([1.2, 2, 0.8])
 with c1:
-    fuero = st.selectbox("Fuero / Mesa", ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"])
+    fuero = st.selectbox("Fuero", ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"])
 with c2:
-    objeto_seleccionado = st.selectbox("Objeto del Juicio", LISTA_CODIGOS, index=None, placeholder="Busque el código...")
+    objeto_seleccionado = st.selectbox("Objeto del Juicio", LISTA_CODIGOS, index=None, placeholder="Seleccione...")
 with c3:
     monto = st.text_input("Monto ($)", value="INDETERMINADO")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 7. BLOQUE: PARTES INTERVINIENTES ---
-st.markdown('<div class="data-block"><div class="section-title">👥 2. PARTES INTERVINIENTES</div>', unsafe_allow_html=True)
+# --- 7. PARTES (DISEÑO DINÁMICO MEJORADO) ---
+# Aquí es donde ocurre la magia: Usamos Inputs normales en lugar de la tabla fea
+st.markdown('<div class="data-block"><div class="section-header">👥 2. Partes Intervinientes</div>', unsafe_allow_html=True)
 
-col_actor, col_sep, col_demandado = st.columns([1, 0.05, 1])
+col_actor_main, col_spacer, col_demandado_main = st.columns([1, 0.1, 1])
 
-# PARTE ACTORA
-with col_actor:
+# --- COLUMNA ACTOR ---
+with col_actor_main:
     st.markdown("#### 👤 Parte Actora")
-    st.caption("Quien reclama / inicia la demanda")
-    df_actores = st.data_editor(
-        pd.DataFrame([{"Apellido y Nombre": "", "DNI": "", "Domicilio": ""}]),
-        column_config={
-            "Apellido y Nombre": st.column_config.TextColumn("👤 Apellido y Nombre", width="large", required=True, help="Ingrese nombre completo"),
-            "DNI": st.column_config.TextColumn("🆔 DNI / CUIT", width="small", required=True, help="Solo números"),
-            "Domicilio": st.column_config.TextColumn("📍 Domicilio Real", width="large", required=True),
-        },
-        num_rows="dynamic", use_container_width=True, hide_index=True, key="editor_actores"
-    )
+    
+    # Contenedor para inputs
+    actores_data = []
+    for i, _ in enumerate(st.session_state.actores):
+        if i > 0: st.markdown('<div class="item-separator"></div>', unsafe_allow_html=True)
+        
+        st.markdown(f"**Solicitante #{i+1}**")
+        a_nom = st.text_input(f"Apellido y Nombre", key=f"act_nom_{i}", placeholder="Apellido y Nombres Completos")
+        c_doc, c_dom = st.columns([0.4, 0.6])
+        a_dni = c_doc.text_input(f"DNI", key=f"act_dni_{i}")
+        a_dom = c_dom.text_input(f"Domicilio Real", key=f"act_dom_{i}")
+        
+        # Guardar en lista temporal
+        actores_data.append({"nombre": a_nom, "dni": a_dni, "domicilio": a_dom})
 
-with col_sep:
-    st.markdown("") 
+    # Botones de control
+    st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
+    cb1, cb2 = st.columns(2)
+    if cb1.button("➕ Agregar otro Actor"): agregar_actor()
+    if cb2.button("➖ Quitar último"): quitar_actor()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# PARTE DEMANDADA
-with col_demandado:
+# --- COLUMNA DEMANDADO ---
+with col_demandado_main:
     st.markdown("#### 🛑 Parte Demandada")
-    st.caption("Contra quien se dirige la acción")
-    df_demandados = st.data_editor(
-        pd.DataFrame([{"Apellido/Razón": "", "Tipo": "CUIT", "Doc N°": "", "Domicilio": ""}]),
-        column_config={
-            "Apellido/Razón": st.column_config.TextColumn("🏢 Nombre / Razón", width="large", required=True, help="Nombre o Razón Social"),
-            "Tipo": st.column_config.SelectboxColumn("📄 Tipo", options=["CUIT", "DNI"], width="small", required=True),
-            "Doc N°": st.column_config.TextColumn("🔢 N° Doc", width="small"),
-            "Domicilio": st.column_config.TextColumn("📍 Domicilio", width="large"),
-        },
-        num_rows="dynamic", use_container_width=True, hide_index=True, key="editor_demandados"
-    )
+    
+    demandados_data = []
+    for i, _ in enumerate(st.session_state.demandados):
+        if i > 0: st.markdown('<div class="item-separator"></div>', unsafe_allow_html=True)
+        
+        st.markdown(f"**Demandado #{i+1}**")
+        d_nom = st.text_input(f"Nombre / Razón Social", key=f"dem_nom_{i}")
+        
+        c_tipo, c_nro, c_dom = st.columns([0.25, 0.35, 0.4])
+        d_tipo = c_tipo.selectbox("Tipo", ["CUIT", "DNI"], key=f"dem_tipo_{i}", label_visibility="collapsed")
+        d_nro = c_nro.text_input("N° Doc", key=f"dem_nro_{i}", placeholder="N° Doc")
+        d_dom = c_dom.text_input("Domicilio", key=f"dem_dom_{i}", placeholder="Domicilio")
+        
+        demandados_data.append({"nombre": d_nom, "tipo": d_tipo, "nro": d_nro, "domicilio": d_dom})
+
+    st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
+    cb3, cb4 = st.columns(2)
+    if cb3.button("➕ Agregar otro Demandado"): agregar_demandado()
+    if cb4.button("➖ Quitar último"): quitar_demandado()
+    st.markdown("</div>", unsafe_allow_html=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 8. BLOQUE: PROFESIONAL ---
-st.markdown('<div class="data-block"><div class="section-title">🎓 3. DATOS DEL PROFESIONAL</div>', unsafe_allow_html=True)
-c_prof1, c_prof2 = st.columns(2)
-with c_prof1:
+# --- 8. PROFESIONAL ---
+st.markdown('<div class="data-block"><div class="section-header">🎓 3. Datos del Profesional</div>', unsafe_allow_html=True)
+cp1, cp2 = st.columns(2)
+with cp1:
     nombre_abog = st.text_input("Abogado Firmante", value=ABOGADO_DEFECTO)
-with c_prof2:
+with cp2:
     mat_abog = st.text_input("Matrícula Profesional", value=MATRICULA_DEFECTO)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 9. BOTÓN GENERAR Y LÓGICA ---
+# --- 9. GENERACIÓN ---
 st.markdown("###")
-col_izq, col_centro, col_der = st.columns([1, 2, 1])
+_, col_btn, _ = st.columns([1, 2, 1])
 
-with col_centro:
-    if st.button("✨ GENERAR DOCUMENTO WORD", use_container_width=True):
-        # Validaciones
-        valid_act = df_actores.iloc[0]["Apellido y Nombre"].strip() != ""
-        valid_dem = df_demandados.iloc[0]["Apellido/Razón"].strip() != ""
-        valid_obj = objeto_seleccionado is not None
+st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
+with col_btn:
+    if st.button("✨ GENERAR DOCUMENTO WORD"):
+        # Filtrar datos vacíos
+        actores_validos = [a for a in actores_data if a['nombre'].strip()]
+        demandados_validos = [d for d in demandados_data if d['nombre'].strip()]
         
-        if not (valid_act and valid_dem and valid_obj):
-            st.error("⚠️ Faltan datos obligatorios. Por favor revise Actor, Demandado u Objeto.")
+        if not actores_validos or not demandados_validos or not objeto_seleccionado:
+            st.error("⚠️ Error: Complete al menos un Actor (Nombre), un Demandado (Nombre) y el Objeto.")
         else:
-            # Procesar datos limpios
-            act_clean = df_actores[df_actores["Apellido y Nombre"] != ""]
-            dem_clean = df_demandados[df_demandados["Apellido/Razón"] != ""]
-            
-            # Separar código y descripción
-            if objeto_seleccionado and " - " in objeto_seleccionado:
+            # Lógica de códigos
+            if " - " in objeto_seleccionado:
                 parts = objeto_seleccionado.rsplit(" - ", 1)
                 cod_desc = parts[0]
                 cod_nro = parts[1]
             else:
-                cod_desc = objeto_seleccionado if objeto_seleccionado else ""
+                cod_desc = objeto_seleccionado
                 cod_nro = ""
             
-            # Contexto para Jinja2
+            # Preparar contexto juntando listas con saltos de línea
             contexto = {
                 'FUERO': fuero,
-                'actor_nombre': "\n".join(act_clean["Apellido y Nombre"].astype(str)),
-                'actor_dni': "\n".join(act_clean["DNI"].astype(str)),
-                'actor_domicilio': "\n".join(act_clean["Domicilio"].astype(str)),
-                'demandado_nombre': "\n".join(dem_clean["Apellido/Razón"].astype(str)),
-                'demandado_tipo_doc': "\n".join(dem_clean["Tipo"].astype(str)),
-                'demandado_nro_doc': "\n".join(dem_clean["Doc N°"].astype(str)),
-                'demandado_domicilio': "\n".join(dem_clean["Domicilio"].astype(str)),
+                'actor_nombre': "\n".join([x['nombre'] for x in actores_validos]),
+                'actor_dni': "\n".join([x['dni'] for x in actores_validos]),
+                'actor_domicilio': "\n".join([x['domicilio'] for x in actores_validos]),
+                'demandado_nombre': "\n".join([x['nombre'] for x in demandados_validos]),
+                'demandado_tipo_doc': "\n".join([x['tipo'] for x in demandados_validos]),
+                'demandado_nro_doc': "\n".join([x['nro'] for x in demandados_validos]),
+                'demandado_cuit': "\n".join([x['nro'] for x in demandados_validos]), # Mapeo redundante por seguridad
+                'demandado_domicilio': "\n".join([x['domicilio'] for x in demandados_validos]),
                 'datos_abogado': nombre_abog,
                 'código_matricula': mat_abog,
                 'firma_abogado': f"{nombre_abog} - M.P. {mat_abog}",
@@ -292,7 +280,6 @@ with col_centro:
                 'fecha': datetime.now().strftime("%d/%m/%Y")
             }
             
-            # Generación del archivo
             plantilla = "formulario ingreso demanda.docx"
             if os.path.exists(plantilla):
                 try:
@@ -301,24 +288,14 @@ with col_centro:
                     bio = io.BytesIO()
                     doc.save(bio)
                     bio.seek(0)
-                    
-                    nombre_archivo = f"Ingreso_{act_clean.iloc[0]['Apellido y Nombre'].replace(' ', '_')[:10]}.docx"
-                    
-                    st.success("✅ ¡Documento generado correctamente!")
-                    st.download_button(
-                        label="📥 DESCARGAR CARÁTULA",
-                        data=bio,
-                        file_name=nombre_archivo,
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    )
+                    fname = f"Ingreso_{actores_validos[0]['nombre'].replace(' ', '_')[:10]}.docx"
+                    st.success("✅ ¡Documento generado!")
+                    st.download_button("📥 DESCARGAR AHORA", data=bio, file_name=fname, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                 except Exception as e:
                     st.error(f"Error técnico: {e}")
             else:
-                st.error("❌ Error: No se encuentra la plantilla .docx en el servidor.")
+                st.error("Falta la plantilla .docx")
+st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 10. FOOTER ---
-st.markdown("""
-    <div class="footer">
-    Estudio Molina & Asociados | Orán, Salta
-    </div>
-    """, unsafe_allow_html=True)
+# --- FOOTER ---
+st.markdown('<div class="footer">Estudio Molina & Asociados | Orán, Salta</div>', unsafe_allow_html=True)
