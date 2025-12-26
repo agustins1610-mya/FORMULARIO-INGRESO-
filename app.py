@@ -47,7 +47,7 @@ if tema == "Claro (Clásico)":
         --accent: #C5A065;
         --input-bg: #FFFFFF;
         --input-text: #000000;
-        --input-border: #333333; /* El borde oscuro que te gusta */
+        --input-border: #333333;
         --card-border: #E2E8F0;
     """
 else:
@@ -205,8 +205,9 @@ with col_izq:
         actores_data.append({"nombre": nombre, "dni": dni, "domicilio": dom})
 
     c_b1, c_b2 = st.columns(2)
-    if c_b1.button("➕ Actor"): agregar_actor()
-    if c_b2.button("➖ Quitar"): quitar_actor()
+    # --- AQUÍ ESTÁ EL ARREGLO (Agregué key="...") ---
+    if c_b1.button("➕ Actor", key="btn_add_actor"): agregar_actor()
+    if c_b2.button("➖ Quitar", key="btn_del_actor"): quitar_actor()
 
 # --- DEMANDADOS ---
 with col_der:
@@ -228,8 +229,9 @@ with col_der:
         demandados_data.append({"nombre": nombre, "tipo": tipo, "nro": nro, "domicilio": dom})
 
     c_b3, c_b4 = st.columns(2)
-    if c_b3.button("➕ Demandado"): agregar_demandado()
-    if c_b4.button("➖ Quitar"): quitar_demandado()
+    # --- AQUÍ TAMBIÉN AGREGUÉ LLAVES ÚNICAS ---
+    if c_b3.button("➕ Demandado", key="btn_add_demandado"): agregar_demandado()
+    if c_b4.button("➖ Quitar", key="btn_del_demandado"): quitar_demandado()
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -301,5 +303,3 @@ with c_main:
 
 # --- FOOTER ---
 st.markdown('<div class="footer">Estudio Molina & Asociados | Orán, Salta</div>', unsafe_allow_html=True)
-
-
