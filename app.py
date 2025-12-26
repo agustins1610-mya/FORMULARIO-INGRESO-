@@ -302,5 +302,4 @@ with c_main:
 # --- FOOTER ---
 st.markdown('<div class="footer">Estudio Molina & Asociados | Orán, Salta</div>', unsafe_allow_html=True)
 
-```
 
