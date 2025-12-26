@@ -22,18 +22,149 @@ with st.sidebar:
 
 # --- LÓGICA DE ESTILOS CSS SEGÚN TEMA ---
 if tema == "Claro (Clásico)":
-    # MODO CLARO FORZADO (Texto oscuro sobre fondo blanco)
+    # MODO CLARO (Estilo Legal Limpio)
     css_variables = """
         --bg-app: #F5F7FA;
         --bg-card: #FFFFFF;
         --text-main: #1A1A1A;
         --text-sub: #4A4A4A;
-        --border-color: #E2E8F0;
         --primary: #1B263B;
         --accent: #C5A065;
+        /* Colores específicos para los Inputs estilo 'Foto' */
         --input-bg: #FFFFFF;
-        --input-text: #1A1A1A;
+        --input-text: #000000;
+        --input-border: #333333; /* Borde oscuro definido */
     """
+else:
+    # MODO OSCURO
+    css_variables = """
+        --bg-app: #0F172A;
+        --bg-card: #1E293B;
+        --text-main: #E2E8F0;
+        --text-sub: #94A3B8;
+        --primary: #38BDF8;
+        --accent: #C5A065;
+        --input-bg: #334155;
+        --input-text: #FFFFFF;
+        --input-border: #475569;
+    """
+
+st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    :root {{
+        {css_variables}
+    }}
+
+    /* APLICACIÓN GLOBAL */
+    [data-testid="stAppViewContainer"] {{
+        background-color: var(--bg-app);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-main);
+    }}
+    
+    [data-testid="stHeader"] {{
+        background-color: rgba(0,0,0,0);
+    }}
+
+    /* --- ESTILO DE INPUTS (COMO EN TU FOTO) --- */
+    /* Esto afecta a los recuadros de texto del abogado y otros */
+    input[type="text"], input[type="number"], .stTextInput input {{
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+        border: 1px solid var(--input-border) !important; /* Borde sólido */
+        border-radius: 8px !important;                    /* Puntas redondeadas */
+        padding: 10px 12px !important;                    /* Espacio interno */
+        font-size: 1rem !important;
+        box-shadow: none !important;
+    }}
+
+    /* Efecto al hacer click en el input (Focus) */
+    input[type="text"]:focus, .stTextInput input:focus {{
+        border: 2px solid var(--primary) !important;      /* Borde azul más grueso */
+        outline: none !important;
+    }}
+    
+    /* Arreglo para Selectores (Listas desplegables) */
+    div[data-baseweb="select"] > div {{
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+        border: 1px solid var(--input-border) !important;
+        border-radius: 8px !important;
+    }}
+    
+    div[data-baseweb="select"] span {{
+        color: var(--input-text) !important;
+    }}
+    
+    /* Menús desplegables */
+    ul[data-baseweb="menu"] {{
+        background-color: var(--input-bg) !important;
+        border: 1px solid var(--input-border) !important;
+    }}
+    li[data-baseweb="option"] {{
+        color: var(--input-text) !important;
+    }}
+
+    /* Etiquetas (Labels) */
+    .stTextInput label, .stSelectbox label, p, h1, h2, h3, h4 {{
+        color: var(--text-main) !important;
+    }}
+
+    /* TARJETAS (DATA BLOCKS) */
+    .data-block {{
+        background-color: var(--bg-card);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }}
+    
+    .section-title {{
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary) !important;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+        display: inline-block;
+    }}
+
+    /* BOTÓN */
+    div.stButton > button {{
+        background: linear-gradient(135deg, #C5A065 0%, #B8860B 100%);
+        color: white !important;
+        border: none;
+        padding: 14px 24px;
+        font-weight: bold;
+        transition: transform 0.2s;
+        border-radius: 8px;
+        font-size: 1.1rem;
+    }}
+    div.stButton > button:hover {{
+        transform: scale(1.02);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }}
+
+    /* FOOTER */
+    .footer {{
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: var(--bg-card);
+        border-top: 1px solid #E2E8F0;
+        color: var(--text-sub);
+        text-align: center;
+        padding: 10px;
+        font-size: 12px;
+        z-index: 999;
+    }}
+    #MainMenu, footer, header {{visibility: hidden;}}
+    </style>
+""", unsafe_allow_html=True)
 else:
     # MODO OSCURO (Texto claro sobre fondo azul profundo)
     css_variables = """
@@ -370,3 +501,4 @@ st.markdown("""
     Estudio Molina & Asociados | Orán, Salta
     </div>
     """, unsafe_allow_html=True)
+
