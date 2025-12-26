@@ -1,18 +1,3 @@
-¡Entendido! Tienes toda la razón. Al cambiar al "modo tarjetas" para eliminar la tabla, en el código anterior quité accidentalmente la barra lateral con el selector de tema (Claro/Oscuro).
-
-Aquí tienes la **FUSIÓN DEFINITIVA**. Este código combina **todo lo mejor de las dos versiones**:
-
-1. **Modo Tarjetas:** Mantiene los inputs individuales (sin tabla fea de Excel).
-2. **Selector de Tema:** Vuelve la opción en la barra lateral para elegir "Claro" u "Oscuro".
-3. **Estilo Personalizado:**
-* **Modo Claro:** Mantiene tus cajas blancas con borde negro (estilo legal/formulario).
-* **Modo Oscuro:** Adapta las tarjetas y los inputs a colores oscuros para que no encandile.
-
-
-
-Copia y pega este código completo. Es la versión final integrada.
-
-```python
 import streamlit as st
 from docxtpl import DocxTemplate
 from datetime import datetime
@@ -318,3 +303,4 @@ with c_main:
 st.markdown('<div class="footer">Estudio Molina & Asociados | Orán, Salta</div>', unsafe_allow_html=True)
 
 ```
+
