@@ -10,91 +10,138 @@ st.set_page_config(
     page_title="Ingreso de Demandas",
     page_icon="⚖️",
     layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# --- ESTILOS VISUALES (CORREGIDOS PARA LEGIBILIDAD) ---
+# --- ESTILOS VISUALES (FORZADO MODO CLARO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
     
-    /* Variables de color */
+    /* 1. FORZAR VARIABLES DE COLOR (MODO CLARO) */
     :root {
-        --primary: #1B263B;      /* Navy Profundo */
-        --secondary: #415A77;    /* Azul Acero */
-        --accent: #C5A065;       /* Dorado */
-        --background: #F0F2F6;   /* Gris muy claro para fondo global */
-        --card-bg: #FFFFFF;      /* Blanco puro para tarjetas */
-        --text-dark: #1A1A1A;    /* Casi negro para lectura óptima */
-        --text-grey: #4A4A4A;    /* Gris oscuro para subtítulos */
+        --primary: #1B263B;
+        --accent: #C5A065;
+        --bg-app: #F0F2F6;
+        --bg-card: #FFFFFF;
+        --text-main: #212529;
+        --text-light: #6C757D;
     }
-    
-    /* Fondo general */
-    .stApp {
-        background-color: var(--background);
+
+    /* 2. FONDO GENERAL */
+    [data-testid="stAppViewContainer"] {
+        background-color: var(--bg-app);
         font-family: 'Roboto', sans-serif;
     }
     
-    /* Títulos */
-    h1, h2, h3 {
-        color: var(--primary) !important;
-        font-weight: 700;
+    [data-testid="stHeader"] {
+        background-color: rgba(0,0,0,0);
+    }
+
+    /* 3. ARREGLAR INPUTS Y SELECTS (ELIMINAR EL FONDO NEGRO) */
+    /* Esto fuerza a que los casilleros sean blancos con texto negro siempre */
+    
+    /* Inputs de texto y número */
+    input[type="text"], input[type="number"], .stTextInput input {
+        background-color: #FFFFFF !important;
+        color: #212529 !important;
+        border: 1px solid #CED4DA !important;
+        border-radius: 6px !important;
     }
     
-    /* Estilo de los BLOQUES (Cards) */
+    /* Listas desplegables (Selectbox) - El problema principal de la foto */
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #212529 !important;
+        border: 1px solid #CED4DA !important;
+        border-radius: 6px !important;
+    }
+    
+    /* Texto dentro del select */
+    div[data-baseweb="select"] span {
+        color: #212529 !important;
+    }
+
+    /* El menú desplegable (las opciones cuando haces click) */
+    ul[data-baseweb="menu"] {
+        background-color: #FFFFFF !important;
+    }
+    
+    li[data-baseweb="option"] {
+        color: #212529 !important; 
+    }
+
+    /* Etiquetas (Labels) encima de los inputs */
+    .stTextInput label, .stSelectbox label, .stNumberInput label, p {
+        color: #212529 !important;
+        font-weight: 500 !important;
+    }
+
+    /* 4. ESTILO DE TARJETAS (DATA BLOCKS) */
     .data-block {
-        background-color: var(--card-bg);
-        border-radius: 12px;
+        background-color: var(--bg-card);
         padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #E9ECEF;
         margin-bottom: 20px;
-        border: 1px solid #E0E0E0; /* Borde sutil para definir el bloque */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Sombra suave */
-        color: var(--text-dark); /* FORZAR COLOR DE TEXTO OSCURO */
     }
     
-    .data-block h4 {
-        color: var(--secondary);
-        font-size: 1.1rem;
+    .block-header {
+        color: var(--primary);
+        font-size: 1.2rem;
+        font-weight: 700;
         margin-bottom: 15px;
         border-bottom: 2px solid var(--accent);
-        padding-bottom: 5px;
+        padding-bottom: 8px;
         display: inline-block;
     }
 
-    /* Forzar color de texto en inputs y tablas de streamlit para contraste */
-    .stTextInput label, .stSelectbox label, .stNumberInput label {
-        color: var(--text-dark) !important;
-        font-weight: 500;
+    /* 5. TÍTULOS PRINCIPALES */
+    h1 {
+        color: var(--primary) !important;
+        font-weight: 800 !important;
     }
     
-    /* Botón Principal */
-    div.stButton > button:first-child {
-        background: var(--primary);
-        color: white;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        font-size: 1.1rem;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.2s;
+    .subtitle {
+        color: var(--text-light);
+        font-size: 1rem;
+    }
+
+    /* 6. BOTÓN */
+    div.stButton > button {
+        background-color: var(--primary) !important;
+        color: white !important;
+        border: none !important;
+        padding: 15px 30px !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        transition: all 0.3s ease !important;
         width: 100%;
     }
-    div.stButton > button:first-child:hover {
-        background: var(--accent);
-        color: var(--primary);
-        font-weight: bold;
-        transform: scale(1.01);
+    
+    div.stButton > button:hover {
+        background-color: var(--accent) !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(197, 160, 101, 0.4) !important;
     }
     
     /* Footer */
     .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: var(--primary);
+        color: white;
         text-align: center;
-        padding: 20px;
-        color: var(--text-grey);
-        font-size: 0.8rem;
-        opacity: 0.8;
+        padding: 10px;
+        font-size: 12px;
+        z-index: 9999;
     }
     
-    /* Ocultar menú de Streamlit */
+    /* Ocultar elementos nativos */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -103,17 +150,16 @@ st.markdown("""
 
 # --- CABECERA ---
 st.markdown("""
-    <div style="text-align: center; padding: 20px 0;">
-        <h1 style="margin:0; font-size: 2.5rem;">⚖️ Ingreso de Demandas</h1>
-        <p style="color: #555; font-size: 1.1rem;">Formulario Oficial - Poder Judicial de Salta</p>
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="margin-bottom: 5px;">⚖️ Ingreso de Demandas</h1>
+        <div class="subtitle">Formulario Oficial - Poder Judicial de Salta</div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- VARIABLES ---
+# --- VARIABLES Y DATOS ---
 ABOGADO_DEFECTO = "SALAS AGUSTÍN GABRIEL"
 MATRICULA_DEFECTO = "7093"
 
-# --- BASE DE DATOS DE CÓDIGOS ---
 CODIGOS_RAW = {
     # LABORAL
     "507": "ACUERDO TRANSACCIONAL – HOMOLOGACIÓN",
@@ -147,71 +193,48 @@ CODIGOS_RAW = {
 LISTA_CODIGOS = sorted([f"{v} - {k}" for k, v in CODIGOS_RAW.items()])
 
 # --- BLOQUE 1: DATOS DEL EXPEDIENTE ---
-st.markdown('<div class="data-block"><h4>📂 1. Datos del Expediente</h4>', unsafe_allow_html=True)
+st.markdown('<div class="data-block"><div class="block-header">📂 1. Datos del Expediente</div>', unsafe_allow_html=True)
 c1, c2, c3 = st.columns([1, 2, 1])
 
 with c1:
-    fuero = st.selectbox(
-        "Fuero / Mesa",
-        ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"],
-        help="Seleccione el fuero correspondiente al expediente."
-    )
-
+    fuero = st.selectbox("Fuero / Mesa", ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"])
 with c2:
-    objeto_seleccionado = st.selectbox(
-        "Objeto del Juicio",
-        LISTA_CODIGOS,
-        index=None,
-        placeholder="Escriba para buscar (ej: Divorcio)...",
-        help="Código y descripción del objeto de la demanda."
-    )
-
+    objeto_seleccionado = st.selectbox("Objeto del Juicio", LISTA_CODIGOS, index=None, placeholder="Seleccione el objeto...")
 with c3:
-    monto = st.text_input(
-        "Monto ($)", 
-        value="INDETERMINADO",
-        help="Ingrese el monto numérico o 'INDETERMINADO'."
-    )
+    monto = st.text_input("Monto ($)", value="INDETERMINADO")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- BLOQUE 2: PARTES (ACTOR Y DEMANDADO) ---
-c_actor, c_demandado = st.columns(2)
+# --- BLOQUE 2: PARTES ---
+c_left, c_right = st.columns(2)
 
-# BLOQUE ACTOR
-with c_actor:
-    st.markdown('<div class="data-block" style="min-height: 400px;"><h4>👤 2. Parte Actora (Quien demanda)</h4>', unsafe_allow_html=True)
-    st.info("💡 Puede agregar múltiples actores agregando filas.")
+with c_left:
+    st.markdown('<div class="data-block" style="height: 100%;">', unsafe_allow_html=True)
+    st.markdown('<div class="block-header">👤 2. Parte Actora</div>', unsafe_allow_html=True)
+    st.caption("Ingrese los datos de quien demanda:")
     df_actores = st.data_editor(
         pd.DataFrame([{"Apellido y Nombre": "", "DNI": "", "Domicilio": ""}]),
-        num_rows="dynamic",
-        use_container_width=True,
-        key="actores_edit",
-        hide_index=True
+        num_rows="dynamic", use_container_width=True, key="actores", hide_index=True
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-# BLOQUE DEMANDADO
-with c_demandado:
-    st.markdown('<div class="data-block" style="min-height: 400px;"><h4>🛑 3. Parte Demandada (A quien se demanda)</h4>', unsafe_allow_html=True)
-    st.info("💡 Seleccione si es CUIT o DNI según corresponda.")
+with c_right:
+    st.markdown('<div class="data-block" style="height: 100%;">', unsafe_allow_html=True)
+    st.markdown('<div class="block-header">🛑 3. Parte Demandada</div>', unsafe_allow_html=True)
+    st.caption("Ingrese los datos de a quien se demanda:")
     col_cfg = {
         "Tipo": st.column_config.SelectboxColumn("Doc", options=["CUIT", "DNI"], required=True, default="CUIT", width="small"),
-        "Número": st.column_config.TextColumn("Número", width="medium"),
-        "Apellido / Razón Social": st.column_config.TextColumn("Nombre / Razón Social", width="large")
+        "Número": st.column_config.TextColumn("Nro Doc", width="medium"),
+        "Apellido / Razón Social": st.column_config.TextColumn("Nombre / Razón", width="large")
     }
-    
     df_demandados = st.data_editor(
         pd.DataFrame([{"Apellido / Razón Social": "", "Tipo": "CUIT", "Número": "", "Domicilio": ""}]),
-        column_config=col_cfg,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="demandados_edit",
-        hide_index=True
+        column_config=col_cfg, num_rows="dynamic", use_container_width=True, key="demandados", hide_index=True
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- BLOQUE 3: PROFESIONAL ---
-st.markdown('<div class="data-block"><h4>🎓 4. Datos del Profesional</h4>', unsafe_allow_html=True)
+st.markdown('<br>', unsafe_allow_html=True)
+st.markdown('<div class="data-block"><div class="block-header">🎓 4. Datos del Profesional</div>', unsafe_allow_html=True)
 cp1, cp2 = st.columns(2)
 with cp1:
     nombre_abog = st.text_input("Abogado Firmante", value=ABOGADO_DEFECTO)
@@ -221,28 +244,28 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # --- GENERACIÓN ---
 st.markdown("###")
-c_gen_izq, c_gen_btn, c_gen_der = st.columns([1, 2, 1])
+col_spacer, col_btn, col_spacer2 = st.columns([1, 2, 1])
 
-with c_gen_btn:
-    if st.button("📝 GENERAR Y DESCARGAR FORMULARIO WORD"):
-        # Validaciones simples
+with col_btn:
+    if st.button("GENERAR FORMULARIO WORD"):
+        # Validaciones
         valid_act = df_actores.iloc[0]["Apellido y Nombre"].strip() != ""
         valid_dem = df_demandados.iloc[0]["Apellido / Razón Social"].strip() != ""
         valid_obj = objeto_seleccionado is not None
         
         if not (valid_act and valid_dem and valid_obj):
-            st.error("⚠️ Faltan datos obligatorios. Por favor revise los bloques marcados.")
+            st.error("⚠️ Faltan datos: Complete Actor, Demandado y Objeto.")
         else:
-            # Lógica de generación (idéntica a la anterior pero limpia)
+            # Procesar datos
             act_clean = df_actores[df_actores["Apellido y Nombre"] != ""]
             dem_clean = df_demandados[df_demandados["Apellido / Razón Social"] != ""]
             
-            if " - " in objeto_seleccionado:
+            if objeto_seleccionado and " - " in objeto_seleccionado:
                 parts = objeto_seleccionado.rsplit(" - ", 1)
                 cod_desc = parts[0]
                 cod_nro = parts[1]
             else:
-                cod_desc = objeto_seleccionado
+                cod_desc = objeto_seleccionado if objeto_seleccionado else ""
                 cod_nro = ""
                 
             contexto = {
@@ -264,6 +287,7 @@ with c_gen_btn:
                 'fecha': datetime.now().strftime("%d/%m/%Y")
             }
             
+            # Generar
             plantilla = "formulario ingreso demanda.docx"
             if os.path.exists(plantilla):
                 try:
@@ -272,20 +296,18 @@ with c_gen_btn:
                     bio = io.BytesIO()
                     doc.save(bio)
                     bio.seek(0)
-                    
                     fname = f"Ingreso_{act_clean.iloc[0]['Apellido y Nombre'].replace(' ', '_')[:10]}.docx"
-                    st.success("✅ ¡Documento generado con éxito!")
-                    st.download_button(
-                        label="📥 DESCARGAR AHORA",
-                        data=bio,
-                        file_name=fname,
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        type="primary" 
-                    )
+                    
+                    st.success("✅ Documento listo.")
+                    st.download_button("📥 DESCARGAR AHORA", data=bio, file_name=fname, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                 except Exception as e:
-                    st.error(f"Error técnico: {e}")
+                    st.error(f"Error: {e}")
             else:
-                st.error("Error: Falta la plantilla .docx")
+                st.error("Falta la plantilla .docx")
 
 # --- FOOTER ---
-st.markdown('<div class="footer">Estudio Molina & Asociados - Sistema Interno</div>', unsafe_allow_html=True)
+st.markdown("""
+    <div class="footer">
+    Estudio Molina & Asociados | Orán, Salta
+    </div>
+    """, unsafe_allow_html=True)
