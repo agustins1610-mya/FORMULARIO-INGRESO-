@@ -54,6 +54,7 @@ with st.sidebar:
     st.info("ℹ️ Sistema interno para generación de carátulas y escritos.")
 
 # --- 4. LÓGICA DE ESTILOS (CSS) ---
+# Nota: Usamos dobles llaves {{ }} en el CSS para evitar conflictos con Python
 if tema == "Claro (Clásico)":
     css_variables = """
         --bg-app: #F5F7FA;
@@ -83,15 +84,24 @@ st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     
-    :root {{ {css_variables} }}
+    :root {{
+        {css_variables}
+    }}
 
-    [data-testid="stAppViewContainer"] {{ background-color: var(--bg-app); font-family: 'Inter', sans-serif; color: var(--text-main); }}
+    [data-testid="stAppViewContainer"] {{
+        background-color: var(--bg-app);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-main);
+    }}
     [data-testid="stHeader"] {{ background-color: rgba(0,0,0,0); }}
     [data-testid="stSidebar"] {{ background-color: var(--bg-card); border-right: 1px solid var(--card-border); }}
 
     input[type="text"], input[type="number"], .stTextInput input, div[data-baseweb="select"] > div {{
-        background-color: var(--input-bg) !important; color: var(--input-text) !important;
-        border: 1px solid var(--input-border) !important; border-radius: 6px !important; min-height: 45px !important;
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+        border: 1px solid var(--input-border) !important;
+        border-radius: 6px !important;
+        min-height: 45px !important;
     }}
     div[data-baseweb="select"] span {{ color: var(--input-text) !important; }}
     ul[data-baseweb="menu"] {{ background-color: var(--input-bg) !important; }}
@@ -99,29 +109,51 @@ st.markdown(f"""
     .stTextInput label, .stSelectbox label, h1, h2, h3, h4, p {{ color: var(--text-main) !important; }}
 
     .data-card {{
-        background-color: var(--bg-card); padding: 25px; border-radius: 12px;
-        border: 1px solid var(--card-border); box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;
+        background-color: var(--bg-card);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
     }}
     .card-title {{
-        font-size: 1.1rem; font-weight: 700; color: var(--primary);
-        border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 20px; display: inline-block;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary);
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 8px;
+        margin-bottom: 20px;
+        display: inline-block;
     }}
-    hr.separator {{ border: 0; border-top: 1px dashed var(--input-border); opacity: 0.3; margin: 20px 0; }}
-    div.stButton > button {{ border-radius: 6px; font-weight: 600; border: none; transition: 0.2s; }}
+    hr.separator {{
+        border: 0;
+        border-top: 1px dashed var(--input-border);
+        opacity: 0.3;
+        margin: 20px 0;
+    }}
+    div.stButton > button {{
+        border-radius: 6px;
+        font-weight: 600;
+        border: none;
+        transition: 0.2s;
+    }}
     
     /* --- FOOTER DE LA WEB MODIFICADO --- */
-    .footer {
-        position: fixed; bottom: 0; left: 0; width: 100%; 
+    .footer {{
+        position: fixed; 
+        bottom: 0; 
+        left: 0; 
+        width: 100%; 
         background-color: var(--bg-card);
         border-top: 1px solid var(--card-border); 
         text-align: center; 
         padding: 12px; 
-        font-size: 14px; /* Aumentado de 12 a 14 */
-        font-weight: 600; /* Letra un poco más gruesa */
+        font-size: 14px; 
+        font-weight: 600; 
         color: var(--text-main); 
         opacity: 0.9; 
         z-index: 999;
-    }
+    }}
     #MainMenu, footer, header {{visibility: hidden;}}
     </style>
 """, unsafe_allow_html=True)
