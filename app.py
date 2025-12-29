@@ -1,12 +1,19 @@
 import streamlit as st
+from docxtpl import DocxTemplate
 from datetime import datetime
 import io
+import os
 from fpdf import FPDF
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Sistema de Demandas - Estudio Molina", page_icon="⚖️", layout="wide")
+st.set_page_config(
+    page_title="Sistema de Demandas",
+    page_icon="⚖️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- 2. BASE DE DATOS DE CÓDIGOS (EXTRAÍDA DEL PDF) ---
+# --- 2. BASE DE DATOS DE CÓDIGOS (COMPLETA) ---
 CODIGOS_RAW = {
     # CIVIL Y COMERCIAL - ORDINARIOS
     "100": "ACCION CONFESORIA - C", "101": "ACCION DE REDUCCION - C", "102": "ACCION SUBROGATORIA - C",
@@ -148,14 +155,68 @@ CODIGOS_RAW = {
     "591": "PEDIDO QUIEBRA POR ACREEDOR - Q", "593": "LIQUIDACION JUDICIAL FIDEICOMISO - Q"
 }
 
-# --- 3. CLASE PDF QUE DIBUJA EL FORMULARIO EXACTO (Res. 231) ---
+# --- 3. BARRA LATERAL (SELECTOR DE TEMA) ---
+with st.sidebar:
+    st.header("⚙️ Configuración")
+    tema = st.radio("Apariencia", ["Claro (Clásico)", "Oscuro (Moderno)"], index=0)
+    st.markdown("---")
+    st.info("ℹ️ Generador de formularios oficiales.")
+
+# --- 4. LÓGICA DE ESTILOS (CSS RECUPERADO) ---
+if tema == "Claro (Clásico)":
+    css_variables = """
+        --bg-app: #F5F7FA; --bg-card: #FFFFFF; --text-main: #1A1A1A;
+        --primary: #1B263B; --accent: #C5A065; --input-bg: #FFFFFF;
+        --input-text: #000000; --input-border: #333333; --card-border: #E2E8F0;
+    """
+else:
+    css_variables = """
+        --bg-app: #0F172A; --bg-card: #1E293B; --text-main: #E2E8F0;
+        --primary: #38BDF8; --accent: #C5A065; --input-bg: #334155;
+        --input-text: #FFFFFF; --input-border: #475569; --card-border: #334155;
+    """
+
+st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    :root {{ {css_variables} }}
+    [data-testid="stAppViewContainer"] {{ background-color: var(--bg-app); font-family: 'Inter', sans-serif; color: var(--text-main); }}
+    [data-testid="stHeader"] {{ background-color: rgba(0,0,0,0); }}
+    [data-testid="stSidebar"] {{ background-color: var(--bg-card); border-right: 1px solid var(--card-border); }}
+    input[type="text"], input[type="number"], .stTextInput input, div[data-baseweb="select"] > div {{
+        background-color: var(--input-bg) !important; color: var(--input-text) !important;
+        border: 1px solid var(--input-border) !important; border-radius: 6px !important; min-height: 45px !important;
+    }}
+    div[data-baseweb="select"] span {{ color: var(--input-text) !important; }}
+    ul[data-baseweb="menu"] {{ background-color: var(--input-bg) !important; }}
+    li[data-baseweb="option"] {{ color: var(--input-text) !important; }}
+    .stTextInput label, .stSelectbox label, h1, h2, h3, h4, p {{ color: var(--text-main) !important; }}
+    .data-card {{
+        background-color: var(--bg-card); padding: 25px; border-radius: 12px;
+        border: 1px solid var(--card-border); box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;
+    }}
+    .card-title {{
+        font-size: 1.1rem; font-weight: 700; color: var(--primary);
+        border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 20px; display: inline-block;
+    }}
+    hr.separator {{ border: 0; border-top: 1px dashed var(--input-border); opacity: 0.3; margin: 20px 0; }}
+    div.stButton > button {{ border-radius: 6px; font-weight: 600; border: none; transition: 0.2s; }}
+    .footer {{
+        position: fixed; bottom: 0; left: 0; width: 100%; 
+        background-color: var(--bg-card); border-top: 1px solid var(--card-border); 
+        text-align: center; padding: 12px; font-size: 14px; font-weight: 600; 
+        color: var(--text-main); opacity: 0.9; z-index: 999;
+    }}
+    #MainMenu, footer, header {{visibility: hidden;}}
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 5. CLASE PDF (Dibuja el formulario exacto Res. 231) ---
 class PDF(FPDF):
     def header(self):
-        # No usamos header automático para controlar posición absoluta
         pass
 
     def footer(self):
-        # Pie de página solicitado
         self.set_y(-15)
         self.set_font('Arial', 'I', 10)
         self.set_text_color(50, 50, 50)
@@ -175,12 +236,12 @@ class PDF(FPDF):
         self.cell(60, 4, "PODER JUDICIAL DE LA PROVINCIA DE SALTA", 0, 1)
         self.cell(60, 4, "MESA DISTRIBUIDORA DE EXPEDIENTES LABORAL", 0, 1)
         
-        # Título Grande
+        # Título
         self.set_xy(10, 35)
         self.set_font('Arial', 'B', 14)
         self.cell(0, 10, "FORMULARIO PARA INGRESO DE DEMANDAS", 0, 1, 'C')
         
-        # Expediente Nro (Arriba a la derecha)
+        # Expediente
         self.set_xy(150, 20)
         self.set_font('Arial', '', 10)
         self.cell(40, 6, "EXPEDIENTE Nº .................", 0, 1)
@@ -192,20 +253,16 @@ class PDF(FPDF):
         self.cell(10, 8, "1", 1, 0, 'C')
         self.cell(180, 8, "ACTORES", 1, 1, 'L')
         
-        # Cabecera Tabla Actores
         self.set_font('Arial', '', 9)
         self.cell(70, 6, "APELLIDO Y NOMBRE", 1, 0, 'C')
         self.cell(70, 6, "Domicilio Real", 1, 0, 'C')
         self.cell(20, 6, "Tipo Doc", 1, 0, 'C')
         self.cell(30, 6, "Número", 1, 1, 'C')
         
-        # Filas Actores (Dibujamos 3 filas fijas como el formulario)
         for i in range(3):
-            # Recuperar datos si existen
             nom = datos['actores'][i]['nombre'] if i < len(datos['actores']) else ""
             dom = datos['actores'][i]['domicilio'] if i < len(datos['actores']) else ""
             dni = datos['actores'][i]['dni'] if i < len(datos['actores']) else ""
-            
             self.cell(70, 8, str(nom), 1, 0, 'L')
             self.cell(70, 8, str(dom), 1, 0, 'L')
             self.cell(20, 8, "DNI" if nom else "", 1, 0, 'C')
@@ -217,20 +274,17 @@ class PDF(FPDF):
         self.cell(10, 8, "2", 1, 0, 'C')
         self.cell(180, 8, "DEMANDADOS", 1, 1, 'L')
         
-        # Cabecera Tabla Demandados
         self.set_font('Arial', '', 9)
         self.cell(70, 6, "APELLIDO Y NOMBRE", 1, 0, 'C')
         self.cell(70, 6, "Domicilio Real", 1, 0, 'C')
         self.cell(20, 6, "Tipo", 1, 0, 'C')
         self.cell(30, 6, "Número", 1, 1, 'C')
         
-        # Filas Demandados (3 filas fijas)
         for i in range(3):
             nom = datos['demandados'][i]['nombre'] if i < len(datos['demandados']) else ""
             dom = datos['demandados'][i]['domicilio'] if i < len(datos['demandados']) else ""
             nro = datos['demandados'][i]['nro'] if i < len(datos['demandados']) else ""
             tipo = datos['demandados'][i]['tipo'] if nom else ""
-            
             self.cell(70, 8, str(nom), 1, 0, 'L')
             self.cell(70, 8, str(dom), 1, 0, 'L')
             self.cell(20, 8, str(tipo), 1, 0, 'C')
@@ -241,11 +295,9 @@ class PDF(FPDF):
         self.set_font('Arial', 'B', 10)
         self.cell(10, 8, "3", 1, 0, 'C')
         self.cell(180, 8, "DATOS DEL ABOGADO", 1, 1, 'L')
-        
         self.set_font('Arial', '', 9)
         self.cell(50, 6, "Nº MATRICULA", 1, 0, 'C')
         self.cell(140, 6, "APELLIDO Y NOMBRE", 1, 1, 'C')
-        
         self.set_font('Arial', 'B', 10)
         self.cell(50, 8, datos['matricula'], 1, 0, 'C')
         self.cell(140, 8, datos['abogado'], 1, 1, 'L')
@@ -255,39 +307,32 @@ class PDF(FPDF):
         self.set_font('Arial', 'B', 10)
         self.cell(10, 8, "4", 1, 0, 'C')
         self.cell(180, 8, "OBJETO DEL JUICIO", 1, 1, 'L')
-        
         self.set_font('Arial', '', 9)
         self.cell(40, 6, "Nº CODIGO", 1, 0, 'C')
         self.cell(150, 6, "DESCRIPCION", 1, 1, 'C')
-        
         self.set_font('Arial', 'B', 10)
         self.cell(40, 8, datos['cod_nro'], 1, 0, 'C')
         self.cell(150, 8, datos['cod_desc'], 1, 1, 'L')
 
-        # --- 5. MONTO y 6. CONEXIDAD (Lado a lado) ---
+        # --- 5. MONTO y 6. CONEXIDAD ---
         self.ln(2)
-        # Monto
         self.cell(10, 8, "5", 1, 0, 'C')
         self.cell(30, 8, "MONTO:", 1, 0, 'L')
-        self.cell(55, 8, datos['monto'], 1, 0, 'L') # Valor del monto
-        
-        # Conexidad
+        self.cell(55, 8, datos['monto'], 1, 0, 'L')
         self.cell(10, 8, "6", 1, 0, 'C')
         self.cell(30, 8, "CONEXIDAD:", 1, 0, 'L')
-        self.cell(55, 8, "", 1, 1, 'L') # Espacio vacío para llenar a mano si hace falta
+        self.cell(55, 8, "", 1, 1, 'L')
 
         # --- OBSERVACIONES ---
         self.ln(4)
         self.set_font('Arial', '', 9)
         self.cell(0, 5, "Observaciones: (consignar, si corresponde, alguna de las excepciones del Anexo Ac. 10.911)", 0, 1)
-        self.rect(self.get_x(), self.get_y(), 190, 20) # Caja vacía grande
+        self.rect(self.get_x(), self.get_y(), 190, 20)
         self.ln(25)
 
         # --- FIRMA ---
         self.set_font('Arial', '', 10)
         self.cell(20, 10, f"Fecha: {datos['fecha']}", 0, 0)
-        
-        # Espacio para firma a la derecha
         self.set_xy(120, 230)
         self.cell(70, 5, ".......................................................", 0, 1, 'C')
         self.set_x(120)
@@ -298,7 +343,7 @@ class PDF(FPDF):
         self.set_x(120)
         self.cell(70, 5, f"M.P. {datos['matricula']}", 0, 1, 'C')
 
-# --- 4. MEMORIA DE ESTADO ---
+# --- 6. MEMORIA ---
 if 'actores' not in st.session_state: st.session_state.actores = [{"id": 0}]
 if 'demandados' not in st.session_state: st.session_state.demandados = [{"id": 0}]
 
@@ -306,68 +351,78 @@ def agregar(k): st.session_state[k].append({"id": len(st.session_state[k])})
 def quitar(k): 
     if len(st.session_state[k]) > 1: st.session_state[k].pop()
 
-# --- 5. INTERFAZ VISUAL ---
-st.markdown("<h2 style='text-align: center;'>⚖️ Generador de Carátulas - Estudio Molina</h2>", unsafe_allow_html=True)
+# --- 7. CABECERA NEUTRA ---
+st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
+st.markdown("<h1>⚖️ Sistema de Ingreso de Demandas</h1>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-col_datos, col_preview = st.columns([1, 1])
+# --- 8. INTERFAZ ---
+col_izq, col_der = st.columns([1, 1])
 
-with col_datos:
-    st.subheader("1. Partes")
+# COLUMNA IZQUIERDA: TARJETAS DE CARGA
+with col_izq:
+    st.markdown('<div class="data-card"><div class="card-title">👥 1. PARTES</div>', unsafe_allow_html=True)
+    
     # Actores
-    st.markdown("**Actores (Solicitantes)**")
+    st.caption("Parte Actora (Solicitantes)")
     actores_data = []
     for i, _ in enumerate(st.session_state.actores):
-        c1, c2, c3 = st.columns([2, 1, 1.5])
-        nom = c1.text_input(f"Nombre Actor {i+1}", key=f"an_{i}")
-        dni = c2.text_input("DNI", key=f"ad_{i}")
-        dom = c3.text_input("Domicilio", key=f"am_{i}")
+        if i > 0: st.markdown('<hr class="separator">', unsafe_allow_html=True)
+        c1, c2 = st.columns([0.6, 0.4])
+        nom = c1.text_input(f"Nombre #{i+1}", key=f"an_{i}")
+        dni = c2.text_input(f"DNI #{i+1}", key=f"ad_{i}")
+        dom = st.text_input(f"Domicilio #{i+1}", key=f"am_{i}")
         actores_data.append({'nombre': nom, 'dni': dni, 'domicilio': dom})
-    c_btn1, c_btn2 = st.columns(2)
-    c_btn1.button("➕ Actor", on_click=agregar, args=('actores',))
-    c_btn2.button("➖ Quitar", on_click=quitar, args=('actores',))
+    
+    cb1, cb2 = st.columns(2)
+    cb1.button("➕ Actor", on_click=agregar, args=('actores',), key="btn_add_a")
+    cb2.button("➖ Quitar", on_click=quitar, args=('actores',), key="btn_del_a")
 
-    st.markdown("---")
+    st.markdown('<hr class="separator">', unsafe_allow_html=True)
+    
     # Demandados
-    st.markdown("**Demandados**")
+    st.caption("Parte Demandada")
     demandados_data = []
     for i, _ in enumerate(st.session_state.demandados):
-        c1, c2, c3, c4 = st.columns([2, 0.8, 1, 1.5])
-        nom = c1.text_input(f"Nombre Demandado {i+1}", key=f"dn_{i}")
+        if i > 0: st.markdown('<hr class="separator">', unsafe_allow_html=True)
+        c1, c2 = st.columns([0.6, 0.4])
+        nom = c1.text_input(f"Demandado #{i+1}", key=f"dn_{i}")
         tipo = c2.selectbox("Tipo", ["CUIT", "DNI"], key=f"dt_{i}", label_visibility="collapsed")
-        nro = c3.text_input("N° Doc", key=f"dd_{i}")
-        dom = c4.text_input("Domicilio", key=f"dm_{i}")
+        c3, c4 = st.columns([0.4, 0.6])
+        nro = c3.text_input(f"N° Doc #{i+1}", key=f"dd_{i}")
+        dom = c4.text_input(f"Dom #{i+1}", key=f"dm_{i}")
         demandados_data.append({'nombre': nom, 'tipo': tipo, 'nro': nro, 'domicilio': dom})
-    c_btn3, c_btn4 = st.columns(2)
-    c_btn3.button("➕ Demandado", on_click=agregar, args=('demandados',))
-    c_btn4.button("➖ Quitar", on_click=quitar, args=('demandados',))
 
-with col_preview:
-    st.subheader("2. Datos del Juicio")
+    cb3, cb4 = st.columns(2)
+    cb3.button("➕ Demandado", on_click=agregar, args=('demandados',), key="btn_add_d")
+    cb4.button("➖ Quitar", on_click=quitar, args=('demandados',), key="btn_del_d")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# COLUMNA DERECHA: JUICIO Y PROFESIONAL
+with col_der:
+    st.markdown('<div class="data-card"><div class="card-title">📂 2. EXPEDIENTE</div>', unsafe_allow_html=True)
     
-    # Preparamos la lista ordenada para el Selectbox
+    # Lista de objetos ordenada
     lista_ordenada = sorted([f"{k} - {v}" for k, v in CODIGOS_RAW.items()])
+    seleccion = st.selectbox("Objeto del Juicio", lista_ordenada)
     
-    seleccion = st.selectbox("Objeto (Busque por código o nombre)", lista_ordenada)
-    
-    # Lógica para separar el número de la descripción
     if " - " in seleccion:
         cod_nro, cod_desc = seleccion.split(" - ", 1)
     else:
         cod_nro, cod_desc = "", seleccion
         
-    monto = st.text_input("Monto ($)", "INDETERMINADO")
-    
-    st.markdown("---")
-    st.subheader("3. Profesional")
-    c_prof1, c_prof2 = st.columns(2)
-    abogado = c_prof1.text_input("Abogado", "SALAS AGUSTÍN GABRIEL")
-    matricula = c_prof2.text_input("Matrícula", "7093")
+    monto = st.text_input("Monto Reclamado ($)", "INDETERMINADO")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. BOTÓN DE GENERACIÓN ---
+    st.markdown('<div class="data-card"><div class="card-title">🎓 3. PROFESIONAL</div>', unsafe_allow_html=True)
+    abogado = st.text_input("Abogado Firmante", "SALAS AGUSTÍN GABRIEL")
+    matricula = st.text_input("Matrícula", "7093")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 9. BOTONES DE ACCIÓN ---
 st.markdown("###")
 if st.button("✨ GENERAR FORMULARIO OFICIAL (PDF)", type="primary", use_container_width=True):
     
-    # Preparamos el diccionario de datos
     datos_pdf = {
         'actores': [a for a in actores_data if a['nombre']],
         'demandados': [d for d in demandados_data if d['nombre']],
@@ -380,11 +435,9 @@ if st.button("✨ GENERAR FORMULARIO OFICIAL (PDF)", type="primary", use_contain
     }
 
     try:
-        # Instanciamos el PDF y dibujamos
         pdf = PDF()
         pdf.generar_formulario(datos_pdf)
         
-        # Guardar en memoria RAM
         buffer = io.BytesIO()
         pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
         buffer.write(pdf_output)
@@ -392,11 +445,16 @@ if st.button("✨ GENERAR FORMULARIO OFICIAL (PDF)", type="primary", use_contain
         
         st.success("✅ Formulario generado correctamente.")
         st.download_button(
-            label="📥 DESCARGAR FORMULARIO PDF",
+            label="📥 DESCARGAR PDF",
             data=buffer,
             file_name=f"Ingreso_Demanda_{datos_pdf['actores'][0]['nombre'] if datos_pdf['actores'] else 'NN'}.pdf",
             mime="application/pdf"
         )
-        
     except Exception as e:
-        st.error(f"Ocurrió un error: {e}")
+        st.error(f"Error: {e}")
+
+# --- 10. FOOTER WEB ---
+st.markdown(
+    '<div class="footer">Creado por Agustín Salas Estudio Molina & Asociados | Orán, Salta - Belgrano N° 517 Orán - 3878 413039</div>', 
+    unsafe_allow_html=True
+)
