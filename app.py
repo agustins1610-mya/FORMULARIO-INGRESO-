@@ -231,7 +231,8 @@ class PDF(FPDF):
         self.cell(60, 4, "DISTRITO JUDICIAL DEL NORTE", 0, 1)
         self.cell(60, 4, "CIRCUNSCRIPCIÓN ORÁN", 0, 1)
         self.cell(60, 4, "PODER JUDICIAL DE LA PROVINCIA DE SALTA", 0, 1)
-        self.cell(60, 4, "MESA DISTRIBUIDORA DE EXPEDIENTES LABORAL", 0, 1)
+        # AQUÍ ESTÁ EL CAMBIO: El fuero ahora es dinámico
+        self.cell(60, 4, f"MESA DISTRIBUIDORA DE EXPEDIENTES {datos['fuero']}", 0, 1)
         
         # Título
         self.set_xy(10, 35)
@@ -399,7 +400,10 @@ with col_izq:
 with col_der:
     st.markdown('<div class="data-card"><div class="card-title">📂 2. EXPEDIENTE</div>', unsafe_allow_html=True)
     
-    # Lista de objetos ordenada
+    # 1. AGREGADO: Selector de Fuero
+    fuero = st.selectbox("Fuero / Jurisdicción", ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"])
+
+    # 2. Lista de objetos
     lista_ordenada = sorted([f"{k} - {v}" for k, v in CODIGOS_RAW.items()])
     seleccion = st.selectbox("Objeto del Juicio", lista_ordenada)
     
@@ -420,7 +424,7 @@ with col_der:
 st.markdown("###")
 if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True):
     
-    # 1. Preparar Datos
+    # Recopilar datos
     datos_comunes = {
         'actores': [a for a in actores_data if a['nombre']],
         'demandados': [d for d in demandados_data if d['nombre']],
@@ -429,20 +433,21 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
         'cod_nro': cod_nro,
         'cod_desc': cod_desc,
         'monto': monto,
+        'fuero': fuero,  # <--- AGREGADO EL FUERO AQUÍ
         'fecha': datetime.now().strftime("%d/%m/%Y")
     }
 
-    # --- A. GENERAR WORD (Usando tu plantilla cargada) ---
+    # --- A. GENERAR WORD ---
     buffer_word = io.BytesIO()
     word_ok = False
-    plantilla = "formulario ingreso demanda.docx" # Asegúrate que este archivo esté en la carpeta
+    plantilla_nombre = "formulario ingreso demanda.docx"
     
-    if os.path.exists(plantilla):
+    if os.path.exists(plantilla_nombre):
         try:
-            doc = DocxTemplate(plantilla)
-            # Contexto plano para Jinja2 en Word (ajusta si tus tags son distintos)
+            doc = DocxTemplate(plantilla_nombre)
+            # Rellenamos el contexto para Word
             contexto_word = {
-                'FUERO': "LABORAL", # O el que corresponda
+                'FUERO': fuero,
                 'actor_nombre': "\n".join([x['nombre'] for x in datos_comunes['actores']]),
                 'actor_dni': "\n".join([x['dni'] for x in datos_comunes['actores']]),
                 'actor_domicilio': "\n".join([x['domicilio'] for x in datos_comunes['actores']]),
@@ -462,11 +467,11 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
             buffer_word.seek(0)
             word_ok = True
         except Exception as e:
-            st.error(f"Error generando Word: {e}")
+            st.error(f"Error técnico generando Word: {e}")
     else:
-        st.warning(f"⚠️ No se encontró el archivo '{plantilla}'. Sube el archivo .docx para habilitar esta descarga.")
+        st.error(f"⚠️ NO SE ENCUENTRA LA PLANTILLA: '{plantilla_nombre}'. Por favor cárgala en el proyecto.")
 
-    # --- B. GENERAR PDF (Dibujado oficial, SIN PIE DE PAGINA) ---
+    # --- B. GENERAR PDF ---
     buffer_pdf = io.BytesIO()
     try:
         pdf = PDF()
@@ -479,11 +484,12 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
         st.error(f"Error generando PDF: {e}")
         pdf_ok = False
 
-    # --- MOSTRAR BOTONES ---
+    # --- MOSTRAR BOTONES DE DESCARGA ---
     if word_ok or pdf_ok:
-        st.success("✅ Documentos generados.")
+        st.success("✅ Documentos generados correctamente.")
         col_d1, col_d2 = st.columns(2)
         
+        # Botón Word
         if word_ok:
             col_d1.download_button(
                 label="📥 DESCARGAR WORD (.docx)",
@@ -492,9 +498,10 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
         
+        # Botón PDF
         if pdf_ok:
             col_d2.download_button(
-                label="📥 DESCARGAR PDF OFICIAL",
+                label="📥 DESCARGAR PDF",
                 data=buffer_pdf,
                 file_name=f"Demanda_{datos_comunes['actores'][0]['nombre'][:10] if datos_comunes['actores'] else 'NN'}.pdf",
                 mime="application/pdf"
@@ -505,4 +512,5 @@ st.markdown(
     '<div class="footer">Creado por Agustín Salas Estudio Molina & Asociados | Orán, Salta - Belgrano N° 517 Orán - 3878 413039</div>', 
     unsafe_allow_html=True
 )
+
 
