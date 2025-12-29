@@ -211,17 +211,14 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. CLASE PDF (Dibuja el formulario exacto Res. 231) ---
+# --- REEMPLAZAR LA CLASE PDF EXISTENTE POR ESTA ---
 class PDF(FPDF):
     def header(self):
         pass
 
     def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 10)
-        self.set_text_color(50, 50, 50)
-        texto = "Creado por Agustín Salas Estudio Molina & Asociados | Orán, Salta - Belgrano N° 517 Orán - 3878 413039"
-        self.cell(0, 10, texto, 0, 0, 'C')
+        # Se eliminó la leyenda "Creado por Agustín Salas..."
+        pass
 
     def generar_formulario(self, datos):
         self.add_page()
@@ -421,9 +418,10 @@ with col_der:
 
 # --- 9. BOTONES DE ACCIÓN ---
 st.markdown("###")
-if st.button("✨ GENERAR FORMULARIO OFICIAL (PDF)", type="primary", use_container_width=True):
+if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True):
     
-    datos_pdf = {
+    # 1. Preparar Datos
+    datos_comunes = {
         'actores': [a for a in actores_data if a['nombre']],
         'demandados': [d for d in demandados_data if d['nombre']],
         'abogado': abogado,
@@ -434,27 +432,77 @@ if st.button("✨ GENERAR FORMULARIO OFICIAL (PDF)", type="primary", use_contain
         'fecha': datetime.now().strftime("%d/%m/%Y")
     }
 
+    # --- A. GENERAR WORD (Usando tu plantilla cargada) ---
+    buffer_word = io.BytesIO()
+    word_ok = False
+    plantilla = "formulario ingreso demanda.docx" # Asegúrate que este archivo esté en la carpeta
+    
+    if os.path.exists(plantilla):
+        try:
+            doc = DocxTemplate(plantilla)
+            # Contexto plano para Jinja2 en Word (ajusta si tus tags son distintos)
+            contexto_word = {
+                'FUERO': "LABORAL", # O el que corresponda
+                'actor_nombre': "\n".join([x['nombre'] for x in datos_comunes['actores']]),
+                'actor_dni': "\n".join([x['dni'] for x in datos_comunes['actores']]),
+                'actor_domicilio': "\n".join([x['domicilio'] for x in datos_comunes['actores']]),
+                'demandado_nombre': "\n".join([x['nombre'] for x in datos_comunes['demandados']]),
+                'demandado_tipo_doc': "\n".join([x['tipo'] for x in datos_comunes['demandados']]),
+                'demandado_nro_doc': "\n".join([x['nro'] for x in datos_comunes['demandados']]),
+                'demandado_domicilio': "\n".join([x['domicilio'] for x in datos_comunes['demandados']]),
+                'datos_abogado': abogado, 
+                'código_matricula': matricula,
+                'codigo_nro': cod_nro, 
+                'codigo_desc': cod_desc, 
+                'monto': monto, 
+                'fecha': datos_comunes['fecha']
+            }
+            doc.render(contexto_word)
+            doc.save(buffer_word)
+            buffer_word.seek(0)
+            word_ok = True
+        except Exception as e:
+            st.error(f"Error generando Word: {e}")
+    else:
+        st.warning(f"⚠️ No se encontró el archivo '{plantilla}'. Sube el archivo .docx para habilitar esta descarga.")
+
+    # --- B. GENERAR PDF (Dibujado oficial, SIN PIE DE PAGINA) ---
+    buffer_pdf = io.BytesIO()
     try:
         pdf = PDF()
-        pdf.generar_formulario(datos_pdf)
-        
-        buffer = io.BytesIO()
+        pdf.generar_formulario(datos_comunes)
         pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-        buffer.write(pdf_output)
-        buffer.seek(0)
-        
-        st.success("✅ Formulario generado correctamente.")
-        st.download_button(
-            label="📥 DESCARGAR PDF",
-            data=buffer,
-            file_name=f"Ingreso_Demanda_{datos_pdf['actores'][0]['nombre'] if datos_pdf['actores'] else 'NN'}.pdf",
-            mime="application/pdf"
-        )
+        buffer_pdf.write(pdf_output)
+        buffer_pdf.seek(0)
+        pdf_ok = True
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error generando PDF: {e}")
+        pdf_ok = False
+
+    # --- MOSTRAR BOTONES ---
+    if word_ok or pdf_ok:
+        st.success("✅ Documentos generados.")
+        col_d1, col_d2 = st.columns(2)
+        
+        if word_ok:
+            col_d1.download_button(
+                label="📥 DESCARGAR WORD (.docx)",
+                data=buffer_word,
+                file_name=f"Demanda_{datos_comunes['actores'][0]['nombre'][:10] if datos_comunes['actores'] else 'NN'}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        
+        if pdf_ok:
+            col_d2.download_button(
+                label="📥 DESCARGAR PDF OFICIAL",
+                data=buffer_pdf,
+                file_name=f"Demanda_{datos_comunes['actores'][0]['nombre'][:10] if datos_comunes['actores'] else 'NN'}.pdf",
+                mime="application/pdf"
+            )
 
 # --- 10. FOOTER WEB ---
 st.markdown(
     '<div class="footer">Creado por Agustín Salas Estudio Molina & Asociados | Orán, Salta - Belgrano N° 517 Orán - 3878 413039</div>', 
     unsafe_allow_html=True
 )
+
