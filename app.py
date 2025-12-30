@@ -59,10 +59,25 @@ def remove_row(key: str) -> None:
 def codigos_ordenados(codigos: dict) -> list[str]:
     return sorted([f"{k} - {v}" for k, v in codigos.items()])
 
-def split_codigo(seleccion: str) -> tuple[str, str]:
+def split_codigo(seleccion) -> tuple[str, str]:
+    """
+    Devuelve (codigo, descripcion) a partir de un string tipo '100 - ORDINARIO - C'.
+    Si la selección es inválida (None u otro tipo), devuelve ("", "").
+    """
+    if not isinstance(seleccion, str):
+        return "", ""
+
+    seleccion = seleccion.strip()
+    if not seleccion:
+        return "", ""
+
     if " - " in seleccion:
-        return seleccion.split(" - ", 1)
+        cod_nro, cod_desc = seleccion.split(" - ", 1)
+        return cod_nro.strip(), cod_desc.strip()
+
+    # Si por alguna razón viene solo el código o texto sin separador
     return "", seleccion
+
 
 def validar_datos(actores: list[dict], demandados: list[dict]) -> tuple[bool, str]:
     if not actores:
@@ -418,8 +433,8 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
             doc.save(buffer_word)
             buffer_word.seek(0)
             word_ok = True
-        except Exception as e:
-            st.error(f"Error técnico generando Word: {e}")
+except Exception as e:
+    st.error(f"Error técnico generando PDF: {e}")
     else:
         st.error(f"⚠️ No se encuentra la plantilla DOCX: '{PLANTILLA_DOCX}'. Cárguela en el proyecto.")
 
@@ -435,4 +450,5 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
         pdf_ok = True
     except Exception as e:
         st.err
+
 
