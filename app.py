@@ -435,3 +435,4 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
         pdf_ok = True
     except Exception as e:
         st.err
+
