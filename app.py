@@ -14,7 +14,7 @@ st.set_page_config(
     page_title="Sistema de Demandas",
     page_icon="⚖️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # -----------------------------
@@ -29,6 +29,7 @@ CODIGOS_RAW = {
 # -----------------------------
 PLANTILLA_DOCX = "formulario ingreso demanda.docx"
 
+
 def safe_filename(text: str, maxlen: int = 40) -> str:
     """Sanitiza para nombres de archivo (Windows-friendly)."""
     if not text:
@@ -38,57 +39,75 @@ def safe_filename(text: str, maxlen: int = 40) -> str:
     text = re.sub(r"\s+", "_", text).strip("_")
     return text[:maxlen] or "NN"
 
+
 def normalizar_monto(m: str) -> str:
     if not m:
         return "INDETERMINADO"
     m = m.strip()
     return m if m else "INDETERMINADO"
 
+
 def init_state_list(key: str) -> None:
-    if key not in st.session_state or not isinstance(st.session_state[key], list) or len(st.session_state[key]) == 0:
+    if (
+        key not in st.session_state
+        or not isinstance(st.session_state[key], list)
+        or len(st.session_state[key]) == 0
+    ):
         st.session_state[key] = [{"id": 0}]
+
 
 def add_row(key: str) -> None:
     st.session_state[key].append({"id": len(st.session_state[key])})
+
 
 def remove_row(key: str) -> None:
     if len(st.session_state[key]) > 1:
         st.session_state[key].pop()
 
+
 @st.cache_data(show_spinner=False)
 def codigos_ordenados(codigos: dict) -> list[str]:
-    return sorted([f"{k} - {v}" for k, v in codigos.items()])
+    """
+    Devuelve lista ordenada de strings tipo '100 - ORDINARIO - C'.
+    Robusto: ignora entradas con claves/valores no string o vacías.
+    """
+    opciones = []
+    for k, v in (codigos or {}).items():
+        if k is None or v is None:
+            continue
+        ks = str(k).strip()
+        vs = str(v).strip()
+        if not ks or not vs:
+            continue
+        opciones.append(f"{ks} - {vs}")
+    return sorted(opciones)
+
 
 def split_codigo(seleccion) -> tuple[str, str]:
     """
     Devuelve (codigo, descripcion) a partir de un string tipo '100 - ORDINARIO - C'.
-    Si la selección es inválida (None u otro tipo), devuelve ("", "").
+    Robusto: si seleccion es None u otro tipo, devuelve ("", "").
     """
     if not isinstance(seleccion, str):
         return "", ""
-
     seleccion = seleccion.strip()
     if not seleccion:
         return "", ""
-
     if " - " in seleccion:
         cod_nro, cod_desc = seleccion.split(" - ", 1)
         return cod_nro.strip(), cod_desc.strip()
-
-    # Si por alguna razón viene solo el código o texto sin separador
     return "", seleccion
 
 
 def validar_datos(actores: list[dict], demandados: list[dict]) -> tuple[bool, str]:
     if not actores:
         return False, "Debe consignar al menos un Actor (Nombre)."
-    # Si querés endurecer: exigir DNI y domicilio del primer actor
     if not actores[0].get("nombre"):
         return False, "El primer Actor debe tener Nombre."
     if not demandados:
-        # No siempre es obligatorio, pero usualmente sí
         return False, "Debe consignar al menos un Demandado (Nombre)."
     return True, ""
+
 
 def build_word_context(datos: dict) -> dict:
     actores = datos.get("actores", [])
@@ -110,6 +129,7 @@ def build_word_context(datos: dict) -> dict:
         "monto": datos.get("monto", ""),
         "fecha": datos.get("fecha", ""),
     }
+
 
 # -----------------------------
 # 4) CSS / TEMA
@@ -159,16 +179,10 @@ st.markdown(
     }}
     hr.separator {{ border: 0; border-top: 1px dashed var(--input-border); opacity: 0.3; margin: 20px 0; }}
     div.stButton > button {{ border-radius: 6px; font-weight: 600; border: none; transition: 0.2s; }}
-    .footer {{
-        position: fixed; bottom: 0; left: 0; width: 100%;
-        background-color: var(--bg-card); border-top: 1px solid var(--card-border);
-        text-align: center; padding: 12px; font-size: 14px; font-weight: 600;
-        color: var(--text-main); opacity: 0.9; z-index: 999;
-    }}
     #MainMenu, footer, header {{visibility: hidden;}}
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # -----------------------------
@@ -292,7 +306,13 @@ class PDF(FPDF):
         # OBSERVACIONES
         self.ln(4)
         self.set_font("Arial", "", 9)
-        self.cell(0, 5, "Observaciones: (consignar, si corresponde, alguna de las excepciones del Anexo Ac. 10.911)", 0, 1)
+        self.cell(
+            0,
+            5,
+            "Observaciones: (consignar, si corresponde, alguna de las excepciones del Anexo Ac. 10.911)",
+            0,
+            1,
+        )
         self.rect(self.get_x(), self.get_y(), 190, 20)
         self.ln(25)
 
@@ -342,7 +362,7 @@ with col_izq:
         nom = c1.text_input(f"Nombre #{i+1}", key=f"an_{i}")
         dni = c2.text_input(f"DNI #{i+1}", key=f"ad_{i}")
         dom = st.text_input(f"Domicilio #{i+1}", key=f"am_{i}")
-        actores_data.append({"nombre": nom.strip(), "dni": dni.strip(), "domicilio": dom.strip()})
+        actores_data.append({"nombre": (nom or "").strip(), "dni": (dni or "").strip(), "domicilio": (dom or "").strip()})
 
     cb1, cb2 = st.columns(2)
     cb1.button("➕ Actor", on_click=add_row, args=("actores",), key="btn_add_a")
@@ -364,7 +384,7 @@ with col_izq:
         nro = c3.text_input(f"N° Doc #{i+1}", key=f"dd_{i}")
         dom = c4.text_input(f"Dom #{i+1}", key=f"dm_{i}")
         demandados_data.append(
-            {"nombre": nom.strip(), "tipo": tipo, "nro": nro.strip(), "domicilio": dom.strip()}
+            {"nombre": (nom or "").strip(), "tipo": tipo, "nro": (nro or "").strip(), "domicilio": (dom or "").strip()}
         )
 
     cb3, cb4 = st.columns(2)
@@ -378,12 +398,24 @@ with col_der:
 
     fuero = st.selectbox(
         "Fuero / Jurisdicción",
-        ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"]
+        ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"],
     )
 
     lista_ordenada = codigos_ordenados(CODIGOS_RAW)
+    if not lista_ordenada:
+        st.error("No hay códigos cargados en CODIGOS_RAW. Verifique el diccionario.")
+        st.stop()
+
+    # Si querés permitir “sin seleccionar”, descomentá:
+    # lista_ordenada = [""] + lista_ordenada
+
     seleccion = st.selectbox("Objeto del Juicio", lista_ordenada)
     cod_nro, cod_desc = split_codigo(seleccion)
+
+    # Blindaje: si algo viene inválido, no seguimos
+    if not cod_nro and not cod_desc:
+        st.warning("Seleccione un objeto del juicio válido.")
+        st.stop()
 
     monto = st.text_input("Monto Reclamado ($)", "INDETERMINADO")
     monto = normalizar_monto(monto)
@@ -422,9 +454,15 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
         "fecha": fecha,
     }
 
+    # Nombre base archivos
+    actor_base = safe_filename(actores_filtrados[0].get("nombre", "Actor"))
+    demanda_base = safe_filename(cod_desc or cod_nro or "Objeto")
+    base_name = f"{actor_base}_{demanda_base}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+
     # A) WORD
     buffer_word = io.BytesIO()
     word_ok = False
+    word_err = ""
 
     if os.path.exists(PLANTILLA_DOCX):
         try:
@@ -433,14 +471,16 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
             doc.save(buffer_word)
             buffer_word.seek(0)
             word_ok = True
-except Exception as e:
-    st.error(f"Error técnico generando PDF: {e}")
+        except Exception as e:
+            word_err = str(e)
     else:
-        st.error(f"⚠️ No se encuentra la plantilla DOCX: '{PLANTILLA_DOCX}'. Cárguela en el proyecto.")
+        word_err = f"No se encuentra la plantilla DOCX: '{PLANTILLA_DOCX}'."
 
     # B) PDF
     buffer_pdf = io.BytesIO()
     pdf_ok = False
+    pdf_err = ""
+
     try:
         pdf = PDF()
         pdf.generar_formulario(datos_comunes)
@@ -449,6 +489,34 @@ except Exception as e:
         buffer_pdf.seek(0)
         pdf_ok = True
     except Exception as e:
-        st.err
+        pdf_err = str(e)
 
+    # Resultados
+    st.markdown("#### Resultados")
+    cdl1, cdl2 = st.columns(2)
 
+    with cdl1:
+        if word_ok:
+            st.success("Word generado correctamente.")
+            st.download_button(
+                "⬇️ Descargar Word",
+                data=buffer_word,
+                file_name=f"{base_name}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+            )
+        else:
+            st.error(f"Error generando Word: {word_err}")
+
+    with cdl2:
+        if pdf_ok:
+            st.success("PDF generado correctamente.")
+            st.download_button(
+                "⬇️ Descargar PDF",
+                data=buffer_pdf,
+                file_name=f"{base_name}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        else:
+            st.error(f"Error generando PDF: {pdf_err}")
