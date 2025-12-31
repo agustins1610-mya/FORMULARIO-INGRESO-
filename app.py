@@ -276,4 +276,227 @@ class PDF(FPDF):
         self.cell(140, 8, str(datos.get("abogado", "")), 1, 1, "L")
 
         self.ln(2)
-        self.se
+        self.set_font("Arial", "B", 10)
+        self.cell(10, 8, "4", 1, 0, "C")
+        self.cell(180, 8, "OBJETO DEL JUICIO", 1, 1, "L")
+        self.set_font("Arial", "", 9)
+        self.cell(40, 6, "Nº CODIGO", 1, 0, "C")
+        self.cell(150, 6, "DESCRIPCION", 1, 1, "C")
+        self.set_font("Arial", "B", 10)
+        self.cell(40, 8, str(datos.get("cod_nro", "")), 1, 0, "C")
+        self.cell(150, 8, str(datos.get("cod_desc", "")), 1, 1, "L")
+
+        self.ln(2)
+        self.cell(10, 8, "5", 1, 0, "C")
+        self.cell(30, 8, "MONTO:", 1, 0, "L")
+        self.cell(55, 8, str(datos.get("monto", "")), 1, 0, "L")
+        self.cell(10, 8, "6", 1, 0, "C")
+        self.cell(30, 8, "CONEXIDAD:", 1, 0, "L")
+        self.cell(55, 8, "", 1, 1, "L")
+
+        self.ln(4)
+        self.set_font("Arial", "", 9)
+        self.cell(
+            0,
+            5,
+            "Observaciones: (consignar, si corresponde, alguna de las excepciones del Anexo Ac. 10.911)",
+            0,
+            1,
+        )
+        self.rect(self.get_x(), self.get_y(), 190, 20)
+        self.ln(25)
+
+        self.set_font("Arial", "", 10)
+        self.cell(20, 10, f"Fecha: {datos.get('fecha', '')}", 0, 0)
+        self.set_xy(120, 230)
+        self.cell(70, 5, ".......................................................", 0, 1, "C")
+        self.set_x(120)
+        self.cell(70, 5, "FIRMA Y SELLO LETRADO", 0, 1, "C")
+        self.set_x(120)
+        self.set_font("Arial", "B", 9)
+        self.cell(70, 5, str(datos.get("abogado", "")), 0, 1, "C")
+        self.set_x(120)
+        self.cell(70, 5, f"M.P. {datos.get('matricula', '')}", 0, 1, "C")
+
+
+# -----------------------------
+# 6) ESTADO
+# -----------------------------
+init_state_list("actores")
+init_state_list("demandados")
+
+# -----------------------------
+# 7) CABECERA
+# -----------------------------
+st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
+st.markdown("<h1>⚖️ Sistema de Ingreso de Demandas</h1>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# -----------------------------
+# 8) INTERFAZ
+# -----------------------------
+col_izq, col_der = st.columns([1, 1])
+
+with col_izq:
+    st.markdown('<div class="data-card"><div class="card-title">👥 1. PARTES</div>', unsafe_allow_html=True)
+
+    st.caption("Parte Actora (Solicitantes)")
+    actores_data: list[dict] = []
+
+    for i, _ in enumerate(st.session_state.actores):
+        if i > 0:
+            st.markdown('<hr class="separator">', unsafe_allow_html=True)
+        c1, c2 = st.columns([0.6, 0.4])
+        nom = c1.text_input(f"Nombre #{i+1}", key=f"an_{i}")
+        dni = c2.text_input(f"DNI #{i+1}", key=f"ad_{i}")
+        dom = st.text_input(f"Domicilio #{i+1}", key=f"am_{i}")
+        actores_data.append(
+            {"nombre": (nom or "").strip(), "dni": (dni or "").strip(), "domicilio": (dom or "").strip()}
+        )
+
+    cb1, cb2 = st.columns(2)
+    cb1.button("➕ Actor", on_click=add_row, args=("actores",), key="btn_add_a")
+    cb2.button("➖ Quitar", on_click=remove_row, args=("actores",), key="btn_del_a")
+
+    st.markdown('<hr class="separator">', unsafe_allow_html=True)
+
+    st.caption("Parte Demandada")
+    demandados_data: list[dict] = []
+
+    for i, _ in enumerate(st.session_state.demandados):
+        if i > 0:
+            st.markdown('<hr class="separator">', unsafe_allow_html=True)
+        c1, c2 = st.columns([0.6, 0.4])
+        nom = c1.text_input(f"Demandado #{i+1}", key=f"dn_{i}")
+        tipo = c2.selectbox("Tipo", ["CUIT", "DNI"], key=f"dt_{i}", label_visibility="collapsed")
+        c3, c4 = st.columns([0.4, 0.6])
+        nro = c3.text_input(f"N° Doc #{i+1}", key=f"dd_{i}")
+        dom = c4.text_input(f"Dom #{i+1}", key=f"dm_{i}")
+        demandados_data.append(
+            {"nombre": (nom or "").strip(), "tipo": tipo, "nro": (nro or "").strip(), "domicilio": (dom or "").strip()}
+        )
+
+    cb3, cb4 = st.columns(2)
+    cb3.button("➕ Demandado", on_click=add_row, args=("demandados",), key="btn_add_d")
+    cb4.button("➖ Quitar", on_click=remove_row, args=("demandados",), key="btn_del_d")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_der:
+    st.markdown('<div class="data-card"><div class="card-title">📂 2. EXPEDIENTE</div>', unsafe_allow_html=True)
+
+    fuero = st.selectbox(
+        "Fuero / Jurisdicción",
+        ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"],
+    )
+
+    lista_ordenada = codigos_ordenados(CODIGOS_RAW)
+    opciones_objeto = ["Seleccione..."] + (lista_ordenada or [])
+    seleccion = st.selectbox("Objeto del Juicio", opciones_objeto)
+    cod_nro, cod_desc = split_codigo(seleccion)
+
+    monto = st.text_input("Monto Reclamado ($)", "INDETERMINADO")
+    monto = normalizar_monto(monto)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="data-card"><div class="card-title">🎓 3. PROFESIONAL</div>', unsafe_allow_html=True)
+    abogado = st.text_input("Abogado Firmante", "SALAS AGUSTÍN GABRIEL").strip()
+    matricula = st.text_input("Matrícula", "7093").strip()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# -----------------------------
+# 9) GENERACIÓN
+# -----------------------------
+st.markdown("###")
+if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True):
+    actores_filtrados = [a for a in actores_data if a.get("nombre")]
+    demandados_filtrados = [d for d in demandados_data if d.get("nombre")]
+
+    ok, msg = validar_datos(actores_filtrados, demandados_filtrtrados)  # <-- corregido abajo
+    if not ok:
+        st.error(msg)
+        st.stop()
+
+    if seleccion == "Seleccione..." or (not cod_nro and not cod_desc):
+        st.error("Debe seleccionar un Objeto del Juicio válido antes de generar documentos.")
+        st.stop()
+
+    fecha = datetime.now().strftime("%d/%m/%Y")
+
+    datos_comunes = {
+        "actores": actores_filtrados,
+        "demandados": demandados_filtrados,
+        "abogado": abogado,
+        "matricula": matricula,
+        "cod_nro": cod_nro,
+        "cod_desc": cod_desc,
+        "monto": monto,
+        "fuero": fuero,
+        "fecha": fecha,
+    }
+
+    actor_base = safe_filename(actores_filtrados[0].get("nombre", "Actor"))
+    demanda_base = safe_filename(cod_desc or cod_nro or "Objeto")
+    base_name = f"{actor_base}_{demanda_base}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+
+    # A) WORD
+    buffer_word = io.BytesIO()
+    word_ok = False
+    word_err = ""
+
+    if os.path.exists(PLANTILLA_DOCX):
+        try:
+            doc = DocxTemplate(PLANTILLA_DOCX)
+            doc.render(build_word_context(datos_comunes))
+            doc.save(buffer_word)
+            buffer_word.seek(0)
+            word_ok = True
+        except Exception as e:
+            word_err = str(e)
+    else:
+        word_err = f"No se encuentra la plantilla DOCX: '{PLANTILLA_DOCX}'."
+
+    # B) PDF
+    buffer_pdf = io.BytesIO()
+    pdf_ok = False
+    pdf_err = ""
+
+    try:
+        pdf = PDF()
+        pdf.generar_formulario(datos_comunes)
+        pdf_output = pdf.output(dest="S").encode("latin-1", "replace")
+        buffer_pdf.write(pdf_output)
+        buffer_pdf.seek(0)
+        pdf_ok = True
+    except Exception as e:
+        pdf_err = str(e)
+
+    st.markdown("#### Resultados")
+    cdl1, cdl2 = st.columns(2)
+
+    with cdl1:
+        if word_ok:
+            st.success("Word generado correctamente.")
+            st.download_button(
+                "⬇️ Descargar Word",
+                data=buffer_word,
+                file_name=f"{base_name}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+            )
+        else:
+            st.error(f"Error generando Word: {word_err}")
+
+    with cdl2:
+        if pdf_ok:
+            st.success("PDF generado correctamente.")
+            st.download_button(
+                "⬇️ Descargar PDF",
+                data=buffer_pdf,
+                file_name=f"{base_name}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        else:
+            st.error(f"Error generando PDF: {pdf_err}")
