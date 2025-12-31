@@ -84,19 +84,15 @@ def codigos_ordenados(codigos: dict) -> list[str]:
 
 
 def split_codigo(seleccion) -> tuple[str, str]:
-    """
-    Devuelve (codigo, descripcion) a partir de un string tipo '100 - ORDINARIO - C'.
-    Robusto: si seleccion es None u otro tipo, devuelve ("", "").
-    """
     if not isinstance(seleccion, str):
         return "", ""
-    seleccion = seleccion.strip()
-    if not seleccion:
+    s = seleccion.strip()
+    if not s or s == "Seleccione...":
         return "", ""
-    if " - " in seleccion:
-        cod_nro, cod_desc = seleccion.split(" - ", 1)
-        return cod_nro.strip(), cod_desc.strip()
-    return "", seleccion
+    if " - " in s:
+        a, b = s.split(" - ", 1)
+        return a.strip(), b.strip()
+    return "", s
 
 
 def validar_datos(actores: list[dict], demandados: list[dict]) -> tuple[bool, str]:
@@ -520,3 +516,4 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
             )
         else:
             st.error(f"Error generando PDF: {pdf_err}")
+
