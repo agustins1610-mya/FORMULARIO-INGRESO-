@@ -397,10 +397,10 @@ with col_der:
         ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"],
     )
 
-    lista_ordenada = codigos_ordenados(CODIGOS_RAW)
-    if not lista_ordenada:
-        st.error("No hay códigos cargados en CODIGOS_RAW. Verifique el diccionario.")
-        st.stop()
+lista_ordenada = codigos_ordenados(CODIGOS_RAW)
+opciones_objeto = ["Seleccione..."] + (lista_ordenada or [])
+seleccion = st.selectbox("Objeto del Juicio", opciones_objeto)
+cod_nro, cod_desc = split_codigo(seleccion)
 
     # Si querés permitir “sin seleccionar”, descomentá:
     # lista_ordenada = [""] + lista_ordenada
@@ -516,4 +516,5 @@ if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True)
             )
         else:
             st.error(f"Error generando PDF: {pdf_err}")
+
 
