@@ -1,3 +1,14 @@
+Voy a entregarte un script completo, listo para copiar/pegar, incorporando: layout con tabs, validación en vivo, resumen ejecutivo, action bar inferior, mejoras CSS, botones consistentes y correcciones de bugs (incluida la variable mal escrita).
+
+
+```python
+# -*- coding: utf-8 -*-
+"""
+Sistema de Ingreso de Demandas (Streamlit)
+Versión UI mejorada: tabs, validación en vivo, resumen ejecutivo, action bar fija,
+estética consistente (CSS), y corrección de bug demandados_filtrtrados.
+"""
+
 import io
 import os
 import re
@@ -6,6 +17,7 @@ from datetime import datetime
 import streamlit as st
 from docxtpl import DocxTemplate
 from fpdf import FPDF
+
 
 # -----------------------------
 # 1) CONFIGURACIÓN DE PÁGINA
@@ -18,7 +30,7 @@ st.set_page_config(
 )
 
 # -----------------------------
-# 2) CÓDIGOS (tu dict completo)
+# 2) CÓDIGOS (PEGÁ TU DICT COMPLETO)
 # -----------------------------
 CODIGOS_RAW = {
     # ... (PEGÁ ACÁ TU DICT REAL) ...
@@ -37,7 +49,7 @@ def safe_filename(text: str, maxlen: int = 40) -> str:
     text = text.strip()
     text = re.sub(r"[^\w\s.-]", "", text, flags=re.UNICODE)
     text = re.sub(r"\s+", "_", text).strip("_")
-    return text[:maxlen] or "NN"
+    return (text[:maxlen] or "NN").strip("_") or "NN"
 
 
 def normalizar_monto(m: str) -> str:
@@ -67,10 +79,7 @@ def remove_row(key: str) -> None:
 
 @st.cache_data(show_spinner=False)
 def codigos_ordenados(codigos: dict) -> list[str]:
-    """
-    Devuelve lista ordenada de strings tipo '100 - ORDINARIO - C'.
-    Robusto: ignora entradas con claves/valores vacíos y normaliza a str.
-    """
+    """Devuelve lista ordenada de strings tipo '100 - ORDINARIO - C'."""
     opciones = []
     for k, v in (codigos or {}).items():
         if k is None or v is None:
@@ -84,10 +93,7 @@ def codigos_ordenados(codigos: dict) -> list[str]:
 
 
 def split_codigo(seleccion) -> tuple[str, str]:
-    """
-    Devuelve (codigo, descripcion) desde '100 - ORDINARIO - C'.
-    Robusto ante None / placeholder.
-    """
+    """Devuelve (codigo, descripcion) desde '100 - ORDINARIO - C'."""
     if not isinstance(seleccion, str):
         return "", ""
     s = seleccion.strip()
@@ -99,13 +105,15 @@ def split_codigo(seleccion) -> tuple[str, str]:
     return "", s
 
 
-def validar_datos(actores: list[dict], demandados: list[dict]) -> tuple[bool, str]:
+def validar_datos(actores: list[dict], demandados: list[dict], seleccion: str) -> tuple[bool, str]:
     if not actores:
         return False, "Debe consignar al menos un Actor (Nombre)."
-    if not actores[0].get("nombre"):
+    if not (actores[0].get("nombre") or "").strip():
         return False, "El primer Actor debe tener Nombre."
     if not demandados:
         return False, "Debe consignar al menos un Demandado (Nombre)."
+    if seleccion == "Seleccione..." or not seleccion:
+        return False, "Debe seleccionar un Objeto del Juicio válido."
     return True, ""
 
 
@@ -132,61 +140,7 @@ def build_word_context(datos: dict) -> dict:
 
 
 # -----------------------------
-# 4) CSS / TEMA
-# -----------------------------
-with st.sidebar:
-    st.header("⚙️ Configuración")
-    tema = st.radio("Apariencia", ["Claro (Clásico)", "Oscuro (Moderno)"], index=0)
-    st.markdown("---")
-    st.info("ℹ️ Generador de formularios oficiales.")
-
-if tema == "Claro (Clásico)":
-    css_variables = """
-        --bg-app: #F5F7FA; --bg-card: #FFFFFF; --text-main: #1A1A1A;
-        --primary: #1B263B; --accent: #C5A065; --input-bg: #FFFFFF;
-        --input-text: #000000; --input-border: #333333; --card-border: #E2E8F0;
-    """
-else:
-    css_variables = """
-        --bg-app: #0F172A; --bg-card: #1E293B; --text-main: #E2E8F0;
-        --primary: #38BDF8; --accent: #C5A065; --input-bg: #334155;
-        --input-text: #FFFFFF; --input-border: #475569; --card-border: #334155;
-    """
-
-st.markdown(
-    f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    :root {{ {css_variables} }}
-    [data-testid="stAppViewContainer"] {{ background-color: var(--bg-app); font-family: 'Inter', sans-serif; color: var(--text-main); }}
-    [data-testid="stHeader"] {{ background-color: rgba(0,0,0,0); }}
-    [data-testid="stSidebar"] {{ background-color: var(--bg-card); border-right: 1px solid var(--card-border); }}
-    input[type="text"], input[type="number"], .stTextInput input, div[data-baseweb="select"] > div {{
-        background-color: var(--input-bg) !important; color: var(--input-text) !important;
-        border: 1px solid var(--input-border) !important; border-radius: 6px !important; min-height: 45px !important;
-    }}
-    div[data-baseweb="select"] span {{ color: var(--input-text) !important; }}
-    ul[data-baseweb="menu"] {{ background-color: var(--input-bg) !important; }}
-    li[data-baseweb="option"] {{ color: var(--input-text) !important; }}
-    .stTextInput label, .stSelectbox label, h1, h2, h3, h4, p {{ color: var(--text-main) !important; }}
-    .data-card {{
-        background-color: var(--bg-card); padding: 25px; border-radius: 12px;
-        border: 1px solid var(--card-border); box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;
-    }}
-    .card-title {{
-        font-size: 1.1rem; font-weight: 700; color: var(--primary);
-        border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 20px; display: inline-block;
-    }}
-    hr.separator {{ border: 0; border-top: 1px dashed var(--input-border); opacity: 0.3; margin: 20px 0; }}
-    div.stButton > button {{ border-radius: 6px; font-weight: 600; border: none; transition: 0.2s; }}
-    #MainMenu, footer, header {{visibility: hidden;}}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# -----------------------------
-# 5) PDF
+# 4) PDF
 # -----------------------------
 class PDF(FPDF):
     def header(self):
@@ -320,185 +274,536 @@ class PDF(FPDF):
 
 
 # -----------------------------
-# 6) ESTADO
+# 5) ESTADO INICIAL
 # -----------------------------
 init_state_list("actores")
 init_state_list("demandados")
 
 # -----------------------------
-# 7) CABECERA
+# 6) SIDEBAR (CONFIG + AYUDA)
 # -----------------------------
-st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
-st.markdown("<h1>⚖️ Sistema de Ingreso de Demandas</h1>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+with st.sidebar:
+    st.header("⚙️ Configuración")
+    tema = st.radio("Apariencia", ["Claro (Clásico)", "Oscuro (Moderno)"], index=0)
+    st.markdown("---")
+
+    st.subheader("Acciones")
+    csa1, csa2 = st.columns(2)
+
+    def reset_form():
+        # Resetea filas
+        st.session_state.actores = [{"id": 0}]
+        st.session_state.demandados = [{"id": 0}]
+        # Resetea inputs conocidos (por prefijos de keys)
+        for k in list(st.session_state.keys()):
+            if k.startswith(("an_", "ad_", "am_", "dn_", "dt_", "dd_", "dm_")):
+                del st.session_state[k]
+        # Campos de expediente/profesional
+        for k in ["fuero_sel", "objeto_sel", "monto_in", "abogado_in", "matricula_in"]:
+            if k in st.session_state:
+                del st.session_state[k]
+
+    if csa1.button("🧹 Limpiar", use_container_width=True):
+        reset_form()
+
+    def cargar_ejemplo():
+        reset_form()
+        # Carga un ejemplo mínimo
+        st.session_state["an_0"] = "PÉREZ, JUAN"
+        st.session_state["ad_0"] = "12345678"
+        st.session_state["am_0"] = "Av. Ejemplo 123 - Orán"
+        st.session_state["dn_0"] = "ACME S.A."
+        st.session_state["dt_0"] = "CUIT"
+        st.session_state["dd_0"] = "30-00000000-0"
+        st.session_state["dm_0"] = "Calle Empresa 456 - Orán"
+        st.session_state["monto_in"] = "INDETERMINADO"
+        st.session_state["abogado_in"] = "SALAS AGUSTÍN GABRIEL"
+        st.session_state["matricula_in"] = "7093"
+        st.session_state["fuero_sel"] = "CIVIL Y COMERCIAL"
+
+    if csa2.button("🧪 Ejemplo", use_container_width=True):
+        cargar_ejemplo()
+
+    st.markdown("---")
+    st.info(
+        "Generación de formulario oficial (Word/PDF) para Mesa Distribuidora.\n\n"
+        "Nota: el PDF incorpora hasta 3 actores y 3 demandados."
+    )
 
 # -----------------------------
-# 8) INTERFAZ
+# 7) CSS / TEMA (MEJORADO)
 # -----------------------------
-col_izq, col_der = st.columns([1, 1])
+if tema == "Claro (Clásico)":
+    css_variables = """
+        --bg-app: #F5F7FA; --bg-card: #FFFFFF; --text-main: #111827;
+        --primary: #1B263B; --accent: #C5A065; --input-bg: #FFFFFF;
+        --input-text: #111827; --input-border: rgba(120,120,120,.35); --card-border: #E5E7EB;
+        --muted: rgba(17,24,39,.70);
+    """
+else:
+    css_variables = """
+        --bg-app: #0B1220; --bg-card: #111B2E; --text-main: #E5E7EB;
+        --primary: #38BDF8; --accent: #C5A065; --input-bg: #0F172A;
+        --input-text: #E5E7EB; --input-border: rgba(148,163,184,.35); --card-border: rgba(148,163,184,.20);
+        --muted: rgba(229,231,235,.72);
+    """
 
-with col_izq:
-    st.markdown('<div class="data-card"><div class="card-title">👥 1. PARTES</div>', unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    :root {{ {css_variables} }}
 
-    st.caption("Parte Actora (Solicitantes)")
-    actores_data: list[dict] = []
+    /* App shell */
+    [data-testid="stAppViewContainer"] {{
+        background-color: var(--bg-app);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-main);
+    }}
+    [data-testid="stHeader"] {{ background-color: rgba(0,0,0,0); }}
+    [data-testid="stSidebar"] {{
+        background-color: var(--bg-card);
+        border-right: 1px solid var(--card-border);
+    }}
+    .block-container {{
+        padding-top: 1.0rem;
+        padding-bottom: 5.0rem; /* espacio para actionbar */
+    }}
+
+    /* Typography */
+    h1, h2, h3, h4, p, label, span {{
+        color: var(--text-main) !important;
+    }}
+    .muted {{ color: var(--muted); }}
+
+    /* Cards */
+    .data-card {{
+        background-color: var(--bg-card);
+        padding: 22px 22px 18px 22px;
+        border-radius: 14px;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+        margin-bottom: 18px;
+    }}
+    .card-title {{
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--primary);
+        border-bottom: 2px solid rgba(197,160,101,.55);
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+        display: inline-block;
+        letter-spacing: .2px;
+    }}
+    .badge {{
+        display:inline-block;
+        font-size: .75rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        background: rgba(197,160,101,.12);
+        color: var(--text-main);
+        margin-left: 8px;
+    }}
+    hr.separator {{
+        border: 0;
+        border-top: 1px dashed var(--input-border);
+        opacity: 0.5;
+        margin: 14px 0;
+    }}
+
+    /* Inputs */
+    .stTextInput input, .stNumberInput input, div[data-baseweb="select"] > div {{
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+        border: 1px solid var(--input-border) !important;
+        border-radius: 10px !important;
+        min-height: 44px !important;
+    }}
+    div[data-baseweb="select"] span {{ color: var(--input-text) !important; }}
+    ul[data-baseweb="menu"] {{ background-color: var(--input-bg) !important; }}
+    li[data-baseweb="option"] {{ color: var(--input-text) !important; }}
+    .stTextInput input:focus, div[data-baseweb="select"] > div:focus-within {{
+        outline: 2px solid rgba(197,160,101,0.30) !important;
+        border-color: rgba(197,160,101,0.55) !important;
+        box-shadow: 0 0 0 3px rgba(197,160,101,0.10) !important;
+    }}
+
+    /* Buttons */
+    div.stButton > button {{
+        border-radius: 10px;
+        font-weight: 650;
+        border: none;
+        transition: 0.15s ease;
+        min-height: 44px;
+    }}
+    div.stButton > button:hover {{
+        transform: translateY(-1px);
+        filter: brightness(1.02);
+    }}
+
+    /* Tabs */
+    button[data-baseweb="tab"] {{
+        font-weight: 650;
+    }}
+
+    /* Action bar */
+    .actionbar {{
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        padding: 12px 18px;
+        background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+        border-top: 1px solid var(--card-border);
+        backdrop-filter: blur(8px);
+        z-index: 999;
+    }}
+
+    /* Hide Streamlit chrome */
+    #MainMenu, footer, header {{visibility: hidden;}}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# -----------------------------
+# 8) CABECERA (BRAND HEADER)
+# -----------------------------
+st.markdown(
+    """
+    <div style="text-align:center; margin-bottom: 8px;">
+        <h1 style="margin-bottom: 4px;">⚖️ Sistema de Ingreso de Demandas</h1>
+        <div class="muted" style="font-size: 0.98rem;">
+            Generación de formulario oficial (Word/PDF) para Mesa Distribuidora
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# -----------------------------
+# 9) TABS (UI PRINCIPAL)
+# -----------------------------
+tab_partes, tab_expediente, tab_prof, tab_resultados = st.tabs(
+    ["👥 Partes", "📂 Expediente", "🎓 Profesional", "✅ Resultados"]
+)
+
+# Variables de trabajo (se definen globalmente para actionbar y generación)
+actores_data: list[dict] = []
+demandados_data: list[dict] = []
+
+fuero = "CIVIL Y COMERCIAL"
+seleccion = "Seleccione..."
+cod_nro, cod_desc = "", ""
+monto = "INDETERMINADO"
+abogado = "SALAS AGUSTÍN GABRIEL"
+matricula = "7093"
+
+
+with tab_partes:
+    st.markdown('<div class="data-card"><div class="card-title">👥 1. Partes<span class="badge">Carga mínima: Actor #1 y Demandado #1</span></div>', unsafe_allow_html=True)
+    st.caption("Parte actora (hasta 3 para el formulario)")
 
     for i, _ in enumerate(st.session_state.actores):
         if i > 0:
             st.markdown('<hr class="separator">', unsafe_allow_html=True)
-        c1, c2 = st.columns([0.6, 0.4])
-        nom = c1.text_input(f"Nombre #{i+1}", key=f"an_{i}")
-        dni = c2.text_input(f"DNI #{i+1}", key=f"ad_{i}")
-        dom = st.text_input(f"Domicilio #{i+1}", key=f"am_{i}")
-        actores_data.append(
-            {"nombre": (nom or "").strip(), "dni": (dni or "").strip(), "domicilio": (dom or "").strip()}
+
+        st.markdown(f"<div class='muted' style='font-weight:650; margin-bottom:6px;'>Actor #{i+1}</div>", unsafe_allow_html=True)
+        c1, c2 = st.columns([0.62, 0.38])
+
+        nom = c1.text_input(
+            "Nombre",
+            key=f"an_{i}",
+            placeholder="APELLIDO, NOMBRE",
+            label_visibility="collapsed",
+        )
+        dni = c2.text_input(
+            "DNI",
+            key=f"ad_{i}",
+            placeholder="DNI",
+            label_visibility="collapsed",
+        )
+        dom = st.text_input(
+            "Domicilio",
+            key=f"am_{i}",
+            placeholder="Domicilio real",
+            label_visibility="collapsed",
         )
 
-    cb1, cb2 = st.columns(2)
-    cb1.button("➕ Actor", on_click=add_row, args=("actores",), key="btn_add_a")
-    cb2.button("➖ Quitar", on_click=remove_row, args=("actores",), key="btn_del_a")
+        actores_data.append(
+            {
+                "nombre": (nom or "").strip(),
+                "dni": (dni or "").strip(),
+                "domicilio": (dom or "").strip(),
+            }
+        )
+
+    ca1, ca2 = st.columns(2)
+    ca1.button("➕ Agregar actor", on_click=add_row, args=("actores",), use_container_width=True)
+    ca2.button("➖ Quitar actor", on_click=remove_row, args=("actores",), use_container_width=True)
 
     st.markdown('<hr class="separator">', unsafe_allow_html=True)
-
-    st.caption("Parte Demandada")
-    demandados_data: list[dict] = []
+    st.caption("Parte demandada (hasta 3 para el formulario)")
 
     for i, _ in enumerate(st.session_state.demandados):
         if i > 0:
             st.markdown('<hr class="separator">', unsafe_allow_html=True)
-        c1, c2 = st.columns([0.6, 0.4])
-        nom = c1.text_input(f"Demandado #{i+1}", key=f"dn_{i}")
-        tipo = c2.selectbox("Tipo", ["CUIT", "DNI"], key=f"dt_{i}", label_visibility="collapsed")
-        c3, c4 = st.columns([0.4, 0.6])
-        nro = c3.text_input(f"N° Doc #{i+1}", key=f"dd_{i}")
-        dom = c4.text_input(f"Dom #{i+1}", key=f"dm_{i}")
-        demandados_data.append(
-            {"nombre": (nom or "").strip(), "tipo": tipo, "nro": (nro or "").strip(), "domicilio": (dom or "").strip()}
+
+        st.markdown(f"<div class='muted' style='font-weight:650; margin-bottom:6px;'>Demandado #{i+1}</div>", unsafe_allow_html=True)
+
+        c1, c2 = st.columns([0.65, 0.35])
+        nom = c1.text_input(
+            "Demandado",
+            key=f"dn_{i}",
+            placeholder="Razón social / Apellido y nombre",
+            label_visibility="collapsed",
         )
 
-    cb3, cb4 = st.columns(2)
-    cb3.button("➕ Demandado", on_click=add_row, args=("demandados",), key="btn_add_d")
-    cb4.button("➖ Quitar", on_click=remove_row, args=("demandados",), key="btn_del_d")
+        tipo = c2.selectbox(
+            "Tipo",
+            ["CUIT", "DNI"],
+            key=f"dt_{i}",
+            help="Seleccione tipo de identificación.",
+        )
+
+        c3, c4 = st.columns([0.35, 0.65])
+        nro = c3.text_input(
+            "Número",
+            key=f"dd_{i}",
+            placeholder="N°",
+            label_visibility="collapsed",
+        )
+        dom = c4.text_input(
+            "Domicilio",
+            key=f"dm_{i}",
+            placeholder="Domicilio real",
+            label_visibility="collapsed",
+        )
+
+        demandados_data.append(
+            {
+                "nombre": (nom or "").strip(),
+                "tipo": tipo,
+                "nro": (nro or "").strip(),
+                "domicilio": (dom or "").strip(),
+            }
+        )
+
+    cd1, cd2 = st.columns(2)
+    cd1.button("➕ Agregar demandado", on_click=add_row, args=("demandados",), use_container_width=True)
+    cd2.button("➖ Quitar demandado", on_click=remove_row, args=("demandados",), use_container_width=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-with col_der:
-    st.markdown('<div class="data-card"><div class="card-title">📂 2. EXPEDIENTE</div>', unsafe_allow_html=True)
+
+with tab_expediente:
+    st.markdown('<div class="data-card"><div class="card-title">📂 2. Expediente<span class="badge">Objeto y monto</span></div>', unsafe_allow_html=True)
 
     fuero = st.selectbox(
         "Fuero / Jurisdicción",
         ["LABORAL", "CIVIL Y COMERCIAL", "PERSONAS Y FAMILIA", "VIOLENCIA FAMILIAR"],
+        key="fuero_sel",
+        help="Seleccione el fuero para la Mesa Distribuidora.",
     )
 
     lista_ordenada = codigos_ordenados(CODIGOS_RAW)
     opciones_objeto = ["Seleccione..."] + (lista_ordenada or [])
-    seleccion = st.selectbox("Objeto del Juicio", opciones_objeto)
+    seleccion = st.selectbox(
+        "Objeto del Juicio",
+        opciones_objeto,
+        key="objeto_sel",
+        help="Debe seleccionar un código válido para generar documentos.",
+    )
     cod_nro, cod_desc = split_codigo(seleccion)
 
-    monto = st.text_input("Monto Reclamado ($)", "INDETERMINADO")
+    monto = st.text_input(
+        "Monto reclamado ($)",
+        value=st.session_state.get("monto_in", "INDETERMINADO"),
+        key="monto_in",
+        help="Si el monto es indeterminado, consignar 'INDETERMINADO'.",
+    )
     monto = normalizar_monto(monto)
 
+    # Vista previa breve (estética funcional)
+    st.markdown('<hr class="separator">', unsafe_allow_html=True)
+    st.markdown("<div class='muted' style='font-weight:650; margin-bottom:6px;'>Vista previa</div>", unsafe_allow_html=True)
+    st.write(
+        f"**Fuero:** {fuero}  \n"
+        f"**Objeto:** {cod_nro or '—'} — {cod_desc or '—'}  \n"
+        f"**Monto:** {monto}"
+    )
+
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="data-card"><div class="card-title">🎓 3. PROFESIONAL</div>', unsafe_allow_html=True)
-    abogado = st.text_input("Abogado Firmante", "SALAS AGUSTÍN GABRIEL").strip()
-    matricula = st.text_input("Matrícula", "7093").strip()
+
+with tab_prof:
+    st.markdown('<div class="data-card"><div class="card-title">🎓 3. Profesional<span class="badge">Firma y matrícula</span></div>', unsafe_allow_html=True)
+
+    abogado = st.text_input(
+        "Abogado firmante",
+        value=st.session_state.get("abogado_in", "SALAS AGUSTÍN GABRIEL"),
+        key="abogado_in",
+        help="Apellido y nombre tal como desea que figure en el formulario.",
+    ).strip()
+
+    matricula = st.text_input(
+        "Matrícula",
+        value=st.session_state.get("matricula_in", "7093"),
+        key="matricula_in",
+        help="Número de matrícula profesional.",
+    ).strip()
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------
-# 9) GENERACIÓN
+# 10) VALIDACIÓN EN VIVO + ESTADO
 # -----------------------------
-st.markdown("###")
-if st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True):
-    actores_filtrados = [a for a in actores_data if a.get("nombre")]
-    demandados_filtrados = [d for d in demandados_data if d.get("nombre")]
+actores_filtrados = [a for a in actores_data if (a.get("nombre") or "").strip()]
+demandados_filtrados = [d for d in demandados_data if (d.get("nombre") or "").strip()]
 
-    ok, msg = validar_datos(actores_filtrados, demandados_filtrtrados)  # <-- corregido abajo
-    if not ok:
-        st.error(msg)
-        st.stop()
+ok_live, msg_live = validar_datos(actores_filtrados, demandados_filtrados, seleccion)
 
-    if seleccion == "Seleccione..." or (not cod_nro and not cod_desc):
-        st.error("Debe seleccionar un Objeto del Juicio válido antes de generar documentos.")
-        st.stop()
+# Estado (badge textual)
+estado_texto = "Listo para generar" if ok_live else "Borrador (incompleto)"
+estado_detalle = "" if ok_live else msg_live
 
-    fecha = datetime.now().strftime("%d/%m/%Y")
+# -----------------------------
+# 11) TAB RESULTADOS (BOTÓN + DESCARGAS)
+# -----------------------------
+with tab_resultados:
+    st.markdown('<div class="data-card"><div class="card-title">✅ 4. Resultados<span class="badge">Word y PDF</span></div>', unsafe_allow_html=True)
 
-    datos_comunes = {
-        "actores": actores_filtrados,
-        "demandados": demandados_filtrados,
-        "abogado": abogado,
-        "matricula": matricula,
-        "cod_nro": cod_nro,
-        "cod_desc": cod_desc,
-        "monto": monto,
-        "fuero": fuero,
-        "fecha": fecha,
-    }
+    # Resumen ejecutivo
+    actor_ppal = (actores_filtrados[0]["nombre"] if actores_filtrados else "—").strip() if actores_filtrados else "—"
+    st.write(
+        f"**Estado:** {estado_texto}  \n"
+        f"**Actor principal:** {actor_ppal}  \n"
+        f"**Fuero:** {fuero}  \n"
+        f"**Objeto:** {cod_nro or '—'} — {cod_desc or '—'}  \n"
+        f"**Monto:** {monto}"
+    )
+    if not ok_live:
+        st.warning(estado_detalle)
 
-    actor_base = safe_filename(actores_filtrados[0].get("nombre", "Actor"))
-    demanda_base = safe_filename(cod_desc or cod_nro or "Objeto")
-    base_name = f"{actor_base}_{demanda_base}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+    st.markdown('<hr class="separator">', unsafe_allow_html=True)
 
-    # A) WORD
-    buffer_word = io.BytesIO()
-    word_ok = False
-    word_err = ""
+    # Generación dentro del tab Resultados
+    generar = st.button("✨ GENERAR DOCUMENTOS", type="primary", use_container_width=True, disabled=not ok_live)
 
-    if os.path.exists(PLANTILLA_DOCX):
+    if generar:
+        # Validación final (por seguridad)
+        ok, msg = validar_datos(actores_filtrados, demandados_filtrados, seleccion)
+        if not ok:
+            st.error(msg)
+            st.stop()
+
+        fecha = datetime.now().strftime("%d/%m/%Y")
+
+        datos_comunes = {
+            "actores": actores_filtrados,
+            "demandados": demandados_filtrados,
+            "abogado": abogado,
+            "matricula": matricula,
+            "cod_nro": cod_nro,
+            "cod_desc": cod_desc,
+            "monto": monto,
+            "fuero": fuero,
+            "fecha": fecha,
+        }
+
+        actor_base = safe_filename(actores_filtrados[0].get("nombre", "Actor"))
+        demanda_base = safe_filename(cod_desc or cod_nro or "Objeto")
+        base_name = f"{actor_base}_{demanda_base}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+
+        # A) WORD
+        buffer_word = io.BytesIO()
+        word_ok = False
+        word_err = ""
+
+        if os.path.exists(PLANTILLA_DOCX):
+            try:
+                doc = DocxTemplate(PLANTILLA_DOCX)
+                doc.render(build_word_context(datos_comunes))
+                doc.save(buffer_word)
+                buffer_word.seek(0)
+                word_ok = True
+            except Exception as e:
+                word_err = str(e)
+        else:
+            word_err = f"No se encuentra la plantilla DOCX: '{PLANTILLA_DOCX}'."
+
+        # B) PDF
+        buffer_pdf = io.BytesIO()
+        pdf_ok = False
+        pdf_err = ""
+
         try:
-            doc = DocxTemplate(PLANTILLA_DOCX)
-            doc.render(build_word_context(datos_comunes))
-            doc.save(buffer_word)
-            buffer_word.seek(0)
-            word_ok = True
+            pdf = PDF()
+            pdf.generar_formulario(datos_comunes)
+            pdf_output = pdf.output(dest="S").encode("latin-1", "replace")
+            buffer_pdf.write(pdf_output)
+            buffer_pdf.seek(0)
+            pdf_ok = True
         except Exception as e:
-            word_err = str(e)
-    else:
-        word_err = f"No se encuentra la plantilla DOCX: '{PLANTILLA_DOCX}'."
+            pdf_err = str(e)
 
-    # B) PDF
-    buffer_pdf = io.BytesIO()
-    pdf_ok = False
-    pdf_err = ""
+        st.markdown("#### Descargas")
+        cdl1, cdl2 = st.columns(2)
 
-    try:
-        pdf = PDF()
-        pdf.generar_formulario(datos_comunes)
-        pdf_output = pdf.output(dest="S").encode("latin-1", "replace")
-        buffer_pdf.write(pdf_output)
-        buffer_pdf.seek(0)
-        pdf_ok = True
-    except Exception as e:
-        pdf_err = str(e)
+        with cdl1:
+            if word_ok:
+                st.success("Word generado correctamente.")
+                st.download_button(
+                    "⬇️ Descargar Word",
+                    data=buffer_word,
+                    file_name=f"{base_name}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                )
+            else:
+                st.error(f"Error generando Word: {word_err}")
 
-    st.markdown("#### Resultados")
-    cdl1, cdl2 = st.columns(2)
+        with cdl2:
+            if pdf_ok:
+                st.success("PDF generado correctamente.")
+                st.download_button(
+                    "⬇️ Descargar PDF",
+                    data=buffer_pdf,
+                    file_name=f"{base_name}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                )
+            else:
+                st.error(f"Error generando PDF: {pdf_err}")
 
-    with cdl1:
-        if word_ok:
-            st.success("Word generado correctamente.")
-            st.download_button(
-                "⬇️ Descargar Word",
-                data=buffer_word,
-                file_name=f"{base_name}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True,
-            )
-        else:
-            st.error(f"Error generando Word: {word_err}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    with cdl2:
-        if pdf_ok:
-            st.success("PDF generado correctamente.")
-            st.download_button(
-                "⬇️ Descargar PDF",
-                data=buffer_pdf,
-                file_name=f"{base_name}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-            )
-        else:
-            st.error(f"Error generando PDF: {pdf_err}")
+# -----------------------------
+# 12) ACTION BAR (RESUMEN FIJO)
+# -----------------------------
+count_act = len(actores_filtrados)
+count_dem = len(demandados_filtrados)
+obj_short = (cod_nro or "—")
+estado_color = "✅" if ok_live else "⚠️"
+actor_short = (actores_filtrados[0]["nombre"] if actores_filtrados else "—")
 
-
+st.markdown(
+    f"""
+    <div class="actionbar">
+      <div style="display:flex; gap:12px; align-items:center; justify-content:space-between;">
+        <div style="font-size:.92rem; opacity:.92;">
+          {estado_color} <b>{estado_texto}</b>
+          &nbsp;&nbsp;|&nbsp;&nbsp; Actor: <b>{actor_short}</b>
+          &nbsp;&nbsp;|&nbsp;&nbsp; Fuero: <b>{fuero}</b>
+          &nbsp;&nbsp;|&nbsp;&nbsp; Objeto: <b>{obj_short}</b>
+          &nbsp;&nbsp;|&nbsp;&nbsp; Actores: <b>{count_act}</b>
+          &nbsp;&nbsp;|&nbsp;&nbsp; Demandados: <b>{count_dem}</b>
+        </div>
+        <div style="font-size:.86rem; opacity:.75;">
+          {datetime.now().strftime("%d/%m/%Y %H:%M")}
+        </div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+```
