@@ -1,7 +1,3 @@
-Voy a entregarte un script completo, listo para copiar/pegar, incorporando: layout con tabs, validación en vivo, resumen ejecutivo, action bar inferior, mejoras CSS, botones consistentes y correcciones de bugs (incluida la variable mal escrita).
-
-
-```python
 # -*- coding: utf-8 -*-
 """
 Sistema de Ingreso de Demandas (Streamlit)
@@ -806,4 +802,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-```
